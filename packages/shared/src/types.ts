@@ -13,6 +13,7 @@ export type MessageType = 'text' | 'image' | 'audio' | 'material_list';
 export type MaterialListStatus = 'draft' | 'sent' | 'quoted';
 export type OrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered';
 export type WorkStatus = 'scheduled' | 'active' | 'completed';
+export type VisitStatus = 'confirmed' | 'completed' | 'cancelled';
 
 export interface Database {
   public: {
@@ -297,6 +298,54 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['works']['Insert']>;
         Relationships: never[];
       };
+      availability_slots: {
+      Row: {
+        id: string;
+        professional_id: string;
+        weekday: number;
+        start_time: string;
+        end_time: string;
+        created_at: string;
+      };
+      Insert: {
+        id?: string;
+        professional_id: string;
+        weekday: number;
+        start_time: string;
+        end_time: string;
+        created_at?: string;
+      };
+      Update: Partial<Database['public']['Tables']['availability_slots']['Insert']>;
+      Relationships: never[];
+      };
+      visits: {
+      Row: {
+        id: string;
+        client_id: string;
+        professional_id: string;
+        scheduled_at: string;
+        status: VisitStatus;
+        address: string | null;
+        notes: string | null;
+        cancelled_by: string | null;
+        created_at: string;
+        updated_at: string;
+      };
+      Insert: {
+        id?: string;
+        client_id: string;
+        professional_id: string;
+        scheduled_at: string;
+        status?: VisitStatus;
+        address?: string | null;
+        notes?: string | null;
+        cancelled_by?: string | null;
+        created_at?: string;
+        updated_at?: string;
+      };
+        Update: Partial<Database['public']['Tables']['visits']['Insert']>;
+        Relationships: never[];
+      };
     };
     Views: Record<string, { Row: Record<string, unknown>; Relationships: never[] }>;
     Functions: Record<string, { Args: Record<string, unknown>; Returns: unknown }>;
@@ -306,6 +355,7 @@ export interface Database {
       material_list_status: MaterialListStatus;
       order_status: OrderStatus;
       work_status: WorkStatus;
+      visit_status: VisitStatus;
     };
     CompositeTypes: Record<string, never>;
   };
@@ -350,4 +400,15 @@ export type OrderWithStore = Order & {
 
 export type WorkWithProfessional = Work & {
   professionals: ProfessionalWithProfile;
+};
+
+export type AvailabilitySlot = Database['public']['Tables']['availability_slots']['Row'];
+export type Visit = Database['public']['Tables']['visits']['Row'];
+
+export type VisitWithProfessional = Visit & {
+  professionals: ProfessionalWithProfile;
+};
+
+export type VisitWithClient = Visit & {
+  client: Profile;
 };

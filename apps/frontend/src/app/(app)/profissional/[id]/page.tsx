@@ -7,6 +7,7 @@ import { api } from '@/lib/api/client';
 import { StarRating } from '@/components/ui/StarRating';
 import { StickyBottomCTA } from '@/components/ui/StickyBottomCTA';
 import { PageHeader } from '@/components/ui/PageHeader';
+import Link from 'next/link';
 import { StartConversationButton } from '@/components/ui/StartConversationButton';
 import { ShareButton, ReviewsSection } from './ProfissionalClient';
 
@@ -121,7 +122,16 @@ export default async function ProfissionalPage({
 
       {/* ── CTA fixado no rodapé (spec_ui.md: "CTAs colados à margem inferior") ── */}
       <StickyBottomCTA>
-        <StartConversationButton professionalId={id} />
+        <div className="flex flex-col gap-2 w-full">
+          <Link
+            href={`/agendar/${id}`}
+            className="w-full h-14 rounded-xl flex items-center justify-center gap-2 font-semibold text-base transition-all active:scale-[0.98] bg-savings hover:bg-emerald-600 text-white"
+          >
+            <span className="material-symbols-outlined text-xl">calendar_month</span>
+            Agendar Visita
+          </Link>
+          <StartConversationButton professionalId={id} />
+        </div>
       </StickyBottomCTA>
     </div>
   );

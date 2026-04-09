@@ -46,7 +46,7 @@ export function StartConversationButton({ professionalId }: StartConversationBut
     <div className="flex flex-col gap-2 w-full">
       <PrimaryButton variant="trust" onClick={handleStart} loading={loading}>
         <span className="material-symbols-outlined text-xl">chat</span>
-        Conversar e Solicitar Visita
+        Enviar Mensagem
       </PrimaryButton>
       {error && (
         <p className="text-xs text-error text-center font-medium">{error}</p>

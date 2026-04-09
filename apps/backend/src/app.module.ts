@@ -8,6 +8,7 @@ import { MessagesModule } from './modules/messages/messages.module';
 import { MaterialListsModule } from './modules/material-lists/material-lists.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { WorksModule } from './modules/works/works.module';
+import { VisitsModule } from './modules/visits/visits.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { ResponseEnvelopeInterceptor } from './core/interceptors/response-envelope.interceptor';
 import { HttpExceptionFilter } from './core/filters/http-exception.filter';
@@ -22,6 +23,7 @@ import { HttpExceptionFilter } from './core/filters/http-exception.filter';
     MaterialListsModule,
     OrdersModule,
     WorksModule,
+    VisitsModule,
     WebhooksModule,
   ],
   providers: [

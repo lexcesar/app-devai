@@ -10,6 +10,10 @@ import type {
   OrderWithStore,
   Work,
   WorkWithProfessional,
+  AvailabilitySlot,
+  Visit,
+  VisitWithProfessional,
+  VisitWithClient,
 } from './types';
 
 export interface IProfessionalsRepository {
@@ -74,4 +78,17 @@ export interface IWorksRepository {
   findAllByProfessional(professionalId: string): Promise<WorkWithProfessional[]>;
   findById(id: string): Promise<WorkWithProfessional | null>;
   updateProgress(id: string, progressPct: number): Promise<Work>;
+}
+
+export interface IAvailabilityRepository {
+  findByProfessional(professionalId: string): Promise<AvailabilitySlot[]>;
+  replaceAll(professionalId: string, slots: { weekday: number; start_time: string; end_time: string }[]): Promise<AvailabilitySlot[]>;
+}
+
+export interface IVisitsRepository {
+  findAllByClient(clientId: string): Promise<VisitWithProfessional[]>;
+  findAllByProfessional(profileId: string): Promise<VisitWithClient[]>;
+  findById(id: string): Promise<(VisitWithProfessional & VisitWithClient) | null>;
+  create(params: { clientId: string; professionalId: string; scheduledAt: string; address?: string; notes?: string }): Promise<Visit>;
+  updateStatus(id: string, status: string, cancelledBy?: string): Promise<Visit>;
 }

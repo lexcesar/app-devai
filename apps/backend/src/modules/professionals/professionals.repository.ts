@@ -117,4 +117,17 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
     );
     return rows.length ? mapRow(rows[0]) : null;
   }
+
+  async findByProfileId(
+    profileId: string,
+  ): Promise<ProfessionalWithProfile | null> {
+    const { rows } = await this.db.query(
+      `SELECT ${PROF_JOIN_COLS}
+       FROM professionals p
+       INNER JOIN profiles pr ON pr.id = p.profile_id
+       WHERE p.profile_id = $1`,
+      [profileId],
+    );
+    return rows.length ? mapRow(rows[0]) : null;
+  }
 }

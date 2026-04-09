@@ -1,17 +1,20 @@
-// Minhas Obras — work tracking screen
-// seed.sql data: Reforma Banheiro Social (65%), Pintura Fachada (agendada)
+// Minhas Obras + Visitas — work tracking and visit scheduling
 import { auth } from '@/lib/auth-bypass';
 import { redirect } from 'next/navigation';
 import { api } from '@/lib/api/client';
 import Link from 'next/link';
-import { ObrasClient } from './ObrasClient';
+import { ObrasVisitasWrapper } from './ObrasVisitasWrapper';
 
 export default async function ObrasPage() {
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const worksList: any[] = await api.get<any[]>('/v1/works').catch(() => []);
+  const [worksList, visitsList] = await Promise.all([
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    api.get<any[]>('/v1/works').catch(() => []),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    api.get<any[]>('/v1/visits').catch(() => []),
+  ]);
 
   return (
     <div className="pb-24 bg-surface min-h-screen">
@@ -28,7 +31,7 @@ export default async function ObrasPage() {
           </Link>
         </div>
 
-        <ObrasClient works={worksList} />
+        <ObrasVisitasWrapper works={worksList} visits={visitsList} />
       </div>
     </div>
   );

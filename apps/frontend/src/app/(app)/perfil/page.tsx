@@ -47,6 +47,12 @@ export default async function PerfilPage() {
             <span className="material-symbols-outlined text-slate-300 ml-auto">chevron_right</span>
           </Link>
           <div className="border-t border-slate-50" />
+          <Link href="/perfil/disponibilidade" className="w-full flex items-center gap-3 px-4 py-3.5">
+            <span className="material-symbols-outlined text-xl text-slate-400">calendar_month</span>
+            <span className="text-sm font-medium text-slate-700">Minha Disponibilidade</span>
+            <span className="material-symbols-outlined text-slate-300 ml-auto">chevron_right</span>
+          </Link>
+          <div className="border-t border-slate-50" />
           <Link href="/perfil/ajuda" className="w-full flex items-center gap-3 px-4 py-3.5">
             <span className="material-symbols-outlined text-xl text-slate-400">help</span>
             <span className="text-sm font-medium text-slate-700">Ajuda e Suporte</span>

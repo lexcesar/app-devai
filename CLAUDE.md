@@ -149,6 +149,23 @@ Se o deploy do frontend falhar com `No Output Directory named "public"`, o Verce
 - Output Directory = **vazio** (deixar em branco)
 - O arquivo `apps/frontend/vercel.json` deve existir com `{"framework": "nextjs"}`
 
+## Workflow Obrigatorio
+
+**REGRA MANDATORIA: Todo trabalho DEVE seguir os workflows do compound-engineering. Sem excecao, independente do tamanho da mudanca.**
+
+O fluxo obrigatorio e:
+
+1. **`/workflows:plan`** — Planejar antes de implementar. Sempre criar o plano primeiro.
+2. **`/workflows:work`** — Implementar seguindo o plano. NAO fazer edits diretos fora do workflow.
+3. **`/workflows:review`** — Revisar antes de commitar. NUNCA commitar sem review.
+4. **Commit** — So apos o review aprovar.
+
+**Proibido:**
+- Implementar mudancas diretamente sem `/workflows:work`
+- Commitar sem rodar `/workflows:review` antes
+- Pular etapas do workflow, mesmo para mudancas de 1 linha
+- Fazer squash de plano + implementacao + review em um unico passo
+
 ## Convencoes
 
 - **Commits**: Conventional Commits — `feat|fix|refactor|test|docs|chore(scope): descricao`
