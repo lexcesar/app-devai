@@ -59,7 +59,7 @@ export class ProfessionalsController {
                   p.full_name AS client_name
              FROM works w
              INNER JOIN profiles p ON p.id = w.client_id
-             WHERE w.professional_id = $1 AND w.status = 'active'
+             WHERE w.professional_id = $1 AND w.status IN ('scheduled', 'active')
              ORDER BY w.started_at DESC
              LIMIT 10`,
           [pro.id],

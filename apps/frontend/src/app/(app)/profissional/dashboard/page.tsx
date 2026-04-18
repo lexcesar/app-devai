@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth-bypass';
 import { redirect } from 'next/navigation';
 import { api } from '@/lib/api/client';
 import Link from 'next/link';
+import { VisitActions, WorkActions } from './WorkActions';
 
 type Dashboard = {
   profile: { id: string; full_name: string; avatar_url: string | null };
@@ -121,10 +122,9 @@ export default async function ProfissionalDashboardPage() {
         ) : (
           <div className="flex flex-col gap-2">
             {data.upcoming_visits.map((v) => (
-              <Link
+              <div
                 key={v.id}
-                href={`/visitas/${v.id}`}
-                className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm block"
+                className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm"
               >
                 <div className="flex items-start justify-between">
                   <div>
@@ -153,7 +153,8 @@ export default async function ProfissionalDashboardPage() {
                     {v.status}
                   </span>
                 </div>
-              </Link>
+                <VisitActions visitId={v.id} status={v.status} />
+              </div>
             ))}
           </div>
         )}
@@ -168,10 +169,9 @@ export default async function ProfissionalDashboardPage() {
         ) : (
           <div className="flex flex-col gap-2">
             {data.active_works.map((w) => (
-              <Link
+              <div
                 key={w.id}
-                href={`/obras/${w.id}`}
-                className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm block"
+                className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm"
               >
                 <p className="text-sm font-semibold text-slate-900">
                   {w.title}
@@ -202,7 +202,8 @@ export default async function ProfissionalDashboardPage() {
                     → {w.next_step}
                   </p>
                 )}
-              </Link>
+                <WorkActions workId={w.id} status={w.status} />
+              </div>
             ))}
           </div>
         )}

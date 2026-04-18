@@ -63,4 +63,22 @@ export class WorksRepository implements IWorksRepository {
     );
     return rows[0] as unknown as Work;
   }
+
+  async updateStatus(
+    id: string,
+    status: 'scheduled' | 'active' | 'completed',
+  ): Promise<Work> {
+    const { rows } = await this.db.query(
+      `UPDATE works
+         SET status = $1,
+             started_at = CASE WHEN $1 = 'active' AND started_at IS NULL THEN now() ELSE started_at END,
+             completed_at = CASE WHEN $1 = 'completed' THEN now() ELSE completed_at END,
+             progress_pct = CASE WHEN $1 = 'completed' THEN 100 ELSE progress_pct END,
+             updated_at = now()
+       WHERE id = $2
+       RETURNING *`,
+      [status, id],
+    );
+    return rows[0] as unknown as Work;
+  }
 }
