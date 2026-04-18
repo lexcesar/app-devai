@@ -39,15 +39,46 @@ Este documento descreve o que foi implementado para endereçar cada ponto da rub
 
 **Implementado:**
 
-1. **Novo endpoint** `GET /api/v1/professionals/me/dashboard` (`apps/backend/src/modules/professionals/professionals.controller.ts`) retorna:
-   - Stats agregadas: visitas agendadas, obras ativas, conversas pendentes, obras concluídas.
-   - Lista de próximas visitas confirmadas.
-   - Lista de obras ativas com progresso.
-   - Protegido por `role === 'professional'` (403 para outros roles).
-2. **Nova página frontend** `/profissional/dashboard` (`apps/frontend/src/app/(app)/profissional/dashboard/page.tsx`) — server component que consome o endpoint e renderiza cards + listas.
-3. **Seed com cliente adicional** (Joana Mendes, `demo_client_002`) para validar isolamento entre usuários.
+### Leitura — dashboard
 
-**Credenciais de teste (docker/02-seed.sql):**
+1. **`GET /api/v1/professionals/me/dashboard`** (`apps/backend/src/modules/professionals/professionals.controller.ts`) retorna:
+   - Stats agregadas: visitas agendadas, obras ativas, conversas pendentes, obras concluídas.
+   - Lista de próximas visitas confirmadas (limit 10).
+   - Lista de obras `scheduled + active` com progresso.
+   - Protegido por `role === 'professional'` (403 para outros roles).
+2. **Página frontend** `/profissional/dashboard` (`apps/frontend/src/app/(app)/profissional/dashboard/page.tsx`) — server component que consome o endpoint e renderiza cards + listas com ações.
+
+### Ações — fluxo ponta-a-ponta do profissional
+
+Todos os endpoints abaixo exigem `role=professional` **e** que o recurso pertença ao profissional logado (via `professional_id` + `findByProfileId`).
+
+**Obras (`apps/backend/src/modules/works/works.controller.ts`):**
+
+| Endpoint | Transição | Efeito lateral |
+|---|---|---|
+| `PATCH /v1/works/:id/start` | `scheduled` → `active` | define `started_at=now()` |
+| `PATCH /v1/works/:id/complete` | `active` → `completed` | define `completed_at=now()`, `progress_pct=100` |
+| `PATCH /v1/works/:id/progress` | qualquer → mesma | atualiza `progress_pct` (0-100 validado) |
+
+**Visitas (`apps/backend/src/modules/visits/visits.controller.ts`, já existiam):**
+
+| Endpoint | Transição | Quem pode |
+|---|---|---|
+| `PATCH /v1/visits/:id/cancel` | `confirmed` → `cancelled` | cliente ou profissional |
+| `PATCH /v1/visits/:id/complete` | `confirmed` → `completed` | apenas profissional |
+
+**UI frontend** (`dashboard/WorkActions.tsx`): botões contextuais por status, usa `router.refresh()` após sucesso. VisitActions com "Concluir"/"Cancelar" em visitas confirmadas. WorkActions com "Iniciar obra"/"Marcar como concluída" conforme status.
+
+### Segurança das ações
+
+Guard compartilhado `assertIsWorksProfessional`:
+1. Obra existe (404 se não).
+2. `profile.role === 'professional'` (403 se não).
+3. `professional.id` resolvido via `findByProfileId(profile.id)` bate com `work.professional_id` (403 se não).
+
+**Fix lateral:** `WorksController.findAll` tinha bug pré-existente — passava `profile.id` direto para `findAllByProfessional` que espera `professional.id`. Corrigido via lookup no repositório de professionals.
+
+### Credenciais de teste (docker/02-seed.sql)
 
 | clerk_id | Nome | Role |
 |---|---|---|
@@ -57,9 +88,13 @@ Este documento descreve o que foi implementado para endereçar cada ponto da rub
 | `demo_professional_002` | José da Silva | professional |
 | `demo_professional_003` | Ana Rodrigues | professional |
 
-Para virar profissional no frontend: setar `NEXT_PUBLIC_BYPASS_USER_CLERK_ID=demo_professional_001` em `apps/frontend/.env.local`.
+Para virar profissional no frontend: setar `NEXT_PUBLIC_BYPASS_USER_CLERK_ID=demo_professional_001` em `apps/frontend/.env.local` e reiniciar.
 
-**Testes:** `apps/frontend/tests-e2e/profissional-dashboard.spec.ts` (condicional por env var).
+### Testes
+
+- Unit backend — `visits.service.spec.ts` (13 cenários): router findAll, book (happy/constraint/zod), cancel (3 paths), complete (3 paths), getAvailableSlots (empty/booked).
+- Unit backend — `works.repository.spec.ts` (6 cenários): filter por client/professional, findById (found/missing), updateProgress.
+- E2e Playwright — `profissional-dashboard.spec.ts` (condicional via `E2E_BYPASS_USER`).
 
 ---
 
@@ -108,14 +143,14 @@ Para virar profissional no frontend: setar `NEXT_PUBLIC_BYPASS_USER_CLERK_ID=dem
 
 **Antes:** único teste era o placeholder "Hello World".
 
-**Agora — 46 testes passando:**
+**Agora — 68 testes passando:**
 
 | Camada | Framework | Testes | Arquivos |
 |---|---|---|---|
-| Backend unit | Jest | 27 | `clerk-auth.guard.spec.ts`, `orders.service.spec.ts`, `ai.service.spec.ts`, `app.controller.spec.ts` |
-| Backend e2e | Jest + supertest | 6 | `orders.e2e-spec.ts`, `app.e2e-spec.ts` |
-| Frontend unit | Vitest + Testing Library | 9 | `StatusBadge.test.tsx`, `PedidosTabs.test.tsx` |
-| Frontend e2e | Playwright | 4 | `cliente-meus-pedidos.spec.ts`, `profissional-dashboard.spec.ts` |
+| Backend unit | Jest | 49 | `clerk-auth.guard.spec.ts` (17), `orders.service.spec.ts` (5), `ai.service.spec.ts` (5), `visits.service.spec.ts` (13), `works.repository.spec.ts` (6), `app.controller.spec.ts` (3) |
+| Backend e2e | Jest + supertest | 6 | `orders.e2e-spec.ts` (5 isolamento), `app.e2e-spec.ts` (1 health) |
+| Frontend unit | Vitest + Testing Library | 9 | `StatusBadge.test.tsx` (4), `PedidosTabs.test.tsx` (5) |
+| Frontend e2e | Playwright | 4 | `cliente-meus-pedidos.spec.ts` (3), `profissional-dashboard.spec.ts` (1 condicional) |
 
 **CI** (`.github/workflows/ci.yml`):
 - Sobe container Postgres com schema + seed aplicados.
@@ -170,8 +205,8 @@ NEXT_PUBLIC_DISABLE_CLERK_AUTH=true \
   npm run dev:frontend
 
 # Testes
-npm test --workspace=backend               # 27 unit
-npm run test:e2e --workspace=backend       # 6 e2e
+npm test --workspace=backend               # 49 unit (Jest)
+npm run test:e2e --workspace=backend       # 6 e2e (supertest + Postgres)
 npm test --workspace=frontend              # 9 unit (Vitest)
 npm run test:e2e --workspace=frontend      # 4 Playwright
 ```
@@ -179,10 +214,23 @@ npm run test:e2e --workspace=frontend      # 4 Playwright
 Navegar em http://localhost:3000:
 - `/pedidos` — Meus Pedidos (isolados por cliente)
 - `/cotacao/ia` — Gerar lista de materiais via Claude
-- `/profissional/dashboard` — (setar `NEXT_PUBLIC_BYPASS_USER_CLERK_ID=demo_professional_001` primeiro)
+- `/profissional/dashboard` — (setar `NEXT_PUBLIC_BYPASS_USER_CLERK_ID=demo_professional_001` primeiro) — agora com botões "Iniciar obra", "Concluir", "Cancelar visita"
 
 Swagger: http://localhost:3333/api/docs
 Health: http://localhost:3333/api/health
+
+### Variáveis obrigatórias em produção (Vercel)
+
+**Backend (`app-devai-backend`):**
+- `DATABASE_URL` — pooler do Supabase
+- `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET`
+- `ANTHROPIC_API_KEY` — necessária para `/v1/ai/material-quote`
+- `CORS_ORIGIN`
+- `NODE_ENV=production` (ativa o startup guard que impede `DISABLE_CLERK_AUTH=true` em prod)
+
+**Frontend (`app-devai-frontend`):**
+- `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
 
 ---
 
@@ -191,9 +239,9 @@ Health: http://localhost:3333/api/health
 | Antes (G1) | Depois (G2) |
 |---|---|
 | 45/100 pontos | Potencial ~100/100 |
-| 1 teste (Hello World) | 46 testes em 4 frameworks |
+| 1 teste (Hello World) | **68 testes** em 4 frameworks |
 | Logs `console.log` | Pino JSON + requestId + redact |
 | Sem IaC | Terraform + Docker + SQL versionados |
 | Sem IA | Claude Haiku 4.5 integrado |
 | Bug crítico em Meus Pedidos | Corrigido + testes de isolamento |
-| Sem dashboard profissional | Dashboard completo com stats |
+| Sem dashboard profissional | Dashboard com stats + **ações ponta-a-ponta** (iniciar/concluir obra, concluir/cancelar visita) |
