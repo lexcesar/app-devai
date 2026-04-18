@@ -55,3 +55,4 @@ coverage/
 .docker/
 .vercel
 .vercel
+.context/

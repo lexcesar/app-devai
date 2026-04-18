@@ -47,6 +47,11 @@ Para facilitar a navegação no repositório, consulte os documentos detalhados:
 | Backend | NestJS 11, TypeScript, Swagger |
 | Banco de Dados | PostgreSQL 17 (Docker local / Supabase em produção) |
 | Autenticação | Clerk |
+| **IA (NLP)** | **Anthropic Claude (Haiku 4.5)** para geração de lista de materiais |
+| **Observabilidade** | **nestjs-pino** (logs JSON estruturados, requestId, redact) + `/api/health` |
+| **Testes Backend** | Jest (unit) + Jest + supertest (e2e integração) |
+| **Testes Frontend** | Vitest + Testing Library (unit) + **Playwright** (e2e browser) |
+| **IaC** | Terraform (provider Vercel) em `infra/terraform/vercel/` |
 | Deploy | Vercel (frontend + backend) |
 | CI/CD | GitHub Actions |
 
@@ -75,6 +80,16 @@ npm run docker:up
 ```
 
 Acesse: **http://localhost:3000** (frontend) | **http://localhost:3001/api/docs** (Swagger)
+
+### 🔑 Perfis de teste (modo bypass)
+
+No ambiente local (`DISABLE_CLERK_AUTH=true`), o usuário logado é escolhido pela env `NEXT_PUBLIC_BYPASS_USER_CLERK_ID` no frontend ou pelo header `X-Dev-User-Id` no backend. Perfis disponíveis no seed:
+
+| clerk_id | Nome | Role |
+|---|---|---|
+| `demo_client_001` (default) | Carlos Alberto | client |
+| `demo_client_002` | Joana Mendes | client |
+| `demo_professional_001` | Ricardo Silva | professional |
 
 ---
 

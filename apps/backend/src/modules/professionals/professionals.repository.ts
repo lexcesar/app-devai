@@ -59,7 +59,8 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
     if (service) {
       const s = service.toLowerCase();
       if (s.includes('elétric')) mappedService = 'eletric';
-      else if (s.includes('hidráulica') || s.includes('encanador')) mappedService = 'encanad';
+      else if (s.includes('hidráulica') || s.includes('encanador'))
+        mappedService = 'encanad';
       else if (s.includes('pintura')) mappedService = 'pintor';
       else if (s.includes('diarista')) mappedService = 'diarista';
       else if (s.includes('pedreiro')) mappedService = 'pedreir';

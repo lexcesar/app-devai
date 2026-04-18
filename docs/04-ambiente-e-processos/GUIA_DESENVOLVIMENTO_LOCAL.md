@@ -153,11 +153,33 @@ Criamos um sistema de **bypass por variável de ambiente** que desliga a autenti
 │  └──────────────────────────────────────────────────────┘       │
 │                                                                  │
 │  🗄️  Banco PostgreSQL local (obrafacil-db)                        │
-│  O guard busca o primeiro perfil do banco local.                 │
-│  Dados de demo (seed.sql) já estão carregados.                   │
+│  O guard resolve o perfil pelo header X-Dev-User-Id, ou          │
+│  cai no primeiro cliente do seed (ORDER BY id ASC).              │
 │                                                                  │
 │  ✅ Resultado: App funciona 100% sem login, com dados reais      │
 └──────────────────────────────────────────────────────────────────┘
+```
+
+### Alternando o usuário logado em bypass
+
+O guard aceita o header `X-Dev-User-Id` com um `clerk_id` do seed. Para trocar o usuário que o frontend envia, defina a env antes de subir o Next.js:
+
+```bash
+NEXT_PUBLIC_BYPASS_USER_CLERK_ID=demo_client_002 npm run dev:frontend
+```
+
+Perfis disponíveis no seed (veja `docker/02-seed.sql`):
+
+| clerk_id | Nome | Role | Pedidos |
+|---|---|---|---|
+| `demo_client_001` (default) | Carlos Alberto | client | 2 pedidos (#88421, #88390) |
+| `demo_client_002` | Joana Mendes | client | 2 pedidos (#90102, #90155) |
+| `demo_professional_001` | Ricardo Silva | professional | — |
+
+Para testes de autorização, também é possível passar o header direto via `curl`:
+
+```bash
+curl -H 'X-Dev-User-Id: demo_client_002' http://localhost:3001/api/v1/orders
 ```
 
 ### Arquivos Envolvidos no Bypass

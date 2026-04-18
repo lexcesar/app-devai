@@ -26,13 +26,15 @@
         "./src/*"
       ]
     },
+    "types": ["@testing-library/jest-dom"],
     "incremental": true
   },
   "include": [
     "next-env.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "vitest.setup.ts"
   ],
   "exclude": [
     "node_modules"

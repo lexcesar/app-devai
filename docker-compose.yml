@@ -29,7 +29,10 @@ services:
     environment:
       PORT: ${PORT:-3001}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
-      DISABLE_CLERK_AUTH: "true"
+      # NODE_ENV defaults to "development" so main.ts's production-safety guard
+      # does not refuse to boot when DISABLE_CLERK_AUTH=true.
+      NODE_ENV: ${NODE_ENV:-development}
+      DISABLE_CLERK_AUTH: ${DISABLE_CLERK_AUTH:-true}
       DATABASE_URL: ${DATABASE_URL:-postgres://obrafacil_user:obrafacil_pass@db:5432/obrafacil_db}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-dummy}
       CLERK_WEBHOOK_SECRET: ${CLERK_WEBHOOK_SECRET:-dummy}

@@ -1,0 +1,9 @@
+vercel_api_token      = "xxx"
+vercel_team_id        = null
+github_repo           = "lexcesar/obra-facil"
+database_url          = "postgresql://postgres.[ref]:[pass]@aws-1-sa-east-1.pooler.supabase.com:6543/postgres"
+clerk_secret_key      = "sk_live_xxx"
+clerk_publishable_key = "pk_live_xxx"
+clerk_webhook_secret  = "whsec_xxx"
+frontend_url          = "https://app-devai-frontend.vercel.app"
+backend_url           = "https://app-devai-backend.vercel.app"

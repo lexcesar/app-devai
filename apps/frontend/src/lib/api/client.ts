@@ -1,7 +1,9 @@
 // HTTP API client — wraps fetch with Clerk Bearer token injection
 // All backend calls go through this client. Never call the backend directly.
 
+import { DEV_USER_ID_HEADER } from '@obrafacil/shared';
 import { auth } from '@/lib/auth-bypass';
+import { BYPASS_USER_CLERK_ID, isAuthBypassEnabled } from '@/lib/auth-bypass-config';
 
 // Server-side uses INTERNAL_API_URL (Docker service name); browser uses NEXT_PUBLIC_API_URL (baked at build)
 const API_URL =
@@ -22,7 +24,13 @@ export type ApiError = {
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const { getToken } = await auth();
   const token = await getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
+  if (isAuthBypassEnabled) {
+    headers[DEV_USER_ID_HEADER] = BYPASS_USER_CLERK_ID;
+  }
+  return headers;
 }
 
 async function request<T>(
@@ -32,12 +40,14 @@ async function request<T>(
   const authHeaders = await getAuthHeaders();
   const url = `${API_URL}${path}`;
 
+  // Auth headers are applied AFTER caller-supplied options.headers so a caller
+  // cannot override Authorization or X-Dev-User-Id by accident or by design.
   const res = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...authHeaders,
       ...(options.headers as Record<string, string> | undefined),
+      ...authHeaders,
     },
     cache: 'no-store',
   });

@@ -99,6 +99,17 @@ insert into profiles (id, clerk_id, full_name, avatar_url, phone, role) values
   'client'
 );
 
+-- Additional demo client for multi-user isolation testing
+insert into profiles (id, clerk_id, full_name, avatar_url, phone, role) values
+(
+  '00000000-0000-0000-0000-000000000011',
+  'demo_client_002',
+  'Joana Mendes',
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
+  '+55 11 99999-0011',
+  'client'
+);
+
 -- ============================================================
 -- PROFESSIONALS
 -- per Stitch prototypes: Ricardo Silva (4.9/128), José da Silva (4.9/142)
@@ -375,6 +386,27 @@ insert into orders (id, client_id, store_id, material_list_id, status, total_amo
   1200.00,
   '88390',
   now() - interval '4 days'
+),
+-- Orders for Joana Mendes (demo_client_002) — for isolation testing
+(
+  'a0000000-0000-0000-0000-000000000003',
+  '00000000-0000-0000-0000-000000000011',
+  '40000000-0000-0000-0000-000000000002',
+  null,
+  'delivered',
+  320.50,
+  '90102',
+  now() - interval '1 day'
+),
+(
+  'a0000000-0000-0000-0000-000000000004',
+  '00000000-0000-0000-0000-000000000011',
+  '40000000-0000-0000-0000-000000000001',
+  null,
+  'pending',
+  89.90,
+  '90155',
+  now() - interval '3 hours'
 );
 
 -- ============================================================

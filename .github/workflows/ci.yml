@@ -12,9 +12,24 @@ on:
 
 jobs:
   ci:
-    name: Lint, Typecheck & Build
+    name: Lint, Typecheck, Test & Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: obrafacil_db
+          POSTGRES_USER: obrafacil_user
+          POSTGRES_PASSWORD: obrafacil_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U obrafacil_user -d obrafacil_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout
@@ -52,6 +67,27 @@ jobs:
           NEXT_PUBLIC_API_URL: 'http://localhost:3001/api'
           NEXT_PUBLIC_DISABLE_CLERK_AUTH: 'true'
 
+      - name: Aplicar schema e seed no Postgres
+        run: |
+          PGPASSWORD=obrafacil_pass psql -h localhost -U obrafacil_user -d obrafacil_db -f docker/01-schema.sql
+          PGPASSWORD=obrafacil_pass psql -h localhost -U obrafacil_user -d obrafacil_db -f docker/02-seed.sql
+
+      - name: Testes unitários backend (Jest)
+        run: npm test --workspace=backend
+
+      - name: Testes unitários frontend (Vitest)
+        run: npm test --workspace=frontend
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_placeholder
+          NEXT_PUBLIC_API_URL: 'http://localhost:3001/api'
+          NEXT_PUBLIC_DISABLE_CLERK_AUTH: 'true'
+
+      - name: Testes e2e backend (isolamento de pedidos)
+        run: npm run test:e2e --workspace=backend
+        env:
+          DATABASE_URL: postgres://obrafacil_user:obrafacil_pass@localhost:5432/obrafacil_db
+          DISABLE_CLERK_AUTH: 'true'
+
       - name: Build backend
         run: npm run build:backend
 
@@ -62,6 +98,27 @@ jobs:
           NEXT_PUBLIC_API_URL: 'http://localhost:3001/api'
           NEXT_PUBLIC_DISABLE_CLERK_AUTH: 'true'
           DISABLE_CLERK_AUTH: 'true'
+
+      - name: Instalar browser do Playwright
+        run: npx --workspace=frontend playwright install --with-deps chromium
+
+      - name: Testes e2e frontend (Playwright)
+        run: |
+          # Sobe backend (dist) e frontend em background, roda Playwright, derruba.
+          DATABASE_URL="postgres://obrafacil_user:obrafacil_pass@localhost:5432/obrafacil_db" \
+            DISABLE_CLERK_AUTH=true \
+            PORT=3001 \
+            node apps/backend/dist/main.js &
+          BACKEND_PID=$!
+          NEXT_PUBLIC_API_URL="http://localhost:3001/api" \
+            NEXT_PUBLIC_DISABLE_CLERK_AUTH=true \
+            NEXT_PUBLIC_BYPASS_USER_CLERK_ID=demo_client_001 \
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder \
+            npm run start --workspace=frontend &
+          FRONTEND_PID=$!
+          npx wait-on http://localhost:3001/api/health http://localhost:3000 -t 60000
+          npm run test:e2e --workspace=frontend
+          kill $BACKEND_PID $FRONTEND_PID || true
 
       - name: Auditoria de segurança
         run: npm audit --audit-level=critical
