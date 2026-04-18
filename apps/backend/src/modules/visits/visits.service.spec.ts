@@ -190,29 +190,32 @@ describe('VisitsService', () => {
     });
 
     it('excludes already-booked datetimes', async () => {
-      // Availability: every Monday 08:00-12:00
-      availabilityRepo.findByProfessional.mockResolvedValue([
-        { weekday: 1, start_time: '08:00', end_time: '12:00' },
-      ]);
-      // Pick next Monday at 09:00 (1h slot) as booked
-      const now = new Date();
-      const monday = new Date(now);
-      const daysUntilMonday = (1 - now.getDay() + 7) % 7 || 7;
-      monday.setDate(now.getDate() + daysUntilMonday);
-      monday.setHours(9, 0, 0, 0);
-      const isoBooked = monday.toISOString();
+      // Availability: all weekdays 08:00-12:00 ensures a slot whatever day we pick.
+      // Using BRT (-03:00) to match the service's TIMEZONE_OFFSET constant —
+      // keeps the test timezone-independent so CI (UTC) and local (BRT) agree.
+      availabilityRepo.findByProfessional.mockResolvedValue(
+        [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({
+          weekday,
+          start_time: '08:00',
+          end_time: '12:00',
+        })),
+      );
+
+      // Pick a date 3 days out; book 09:00 BRT on it.
+      const target = new Date();
+      target.setDate(target.getDate() + 3);
+      const dateStr = target.toISOString().split('T')[0];
+      const bookedIso = new Date(`${dateStr}T09:00:00-03:00`).toISOString();
 
       visitsRepo.findActiveByProfessional.mockResolvedValue([
-        { scheduled_at: isoBooked },
+        { scheduled_at: bookedIso },
       ]);
 
       const r = await service.getAvailableSlots('pro-1');
-      const mondayEntry = r.find(
-        (d) => d.date === monday.toISOString().split('T')[0],
-      );
-      // 08:00 should be present, 09:00 should be excluded
-      expect(mondayEntry?.times).toContain('08:00');
-      expect(mondayEntry?.times).not.toContain('09:00');
+      const entry = r.find((d) => d.date === dateStr);
+      expect(entry).toBeDefined();
+      expect(entry?.times).toContain('08:00');
+      expect(entry?.times).not.toContain('09:00');
     });
   });
 });
