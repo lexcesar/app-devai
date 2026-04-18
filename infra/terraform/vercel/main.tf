@@ -22,7 +22,7 @@ locals {
 # ─── Backend (NestJS via api/index.ts serverless) ───────────────
 resource "vercel_project" "backend" {
   name      = "app-devai-backend"
-  framework = "other"
+  framework = "nestjs"
   git_repository = {
     type = local.git_repo_type
     repo = local.git_repo

@@ -1,0 +1,79 @@
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # vercel_project.backend will be created
+  + resource "vercel_project" "backend" {
+      + auto_assign_custom_domains                        = true
+      + automatically_expose_system_environment_variables = (known after apply)
+      + customer_success_code_visibility                  = (known after apply)
+      + directory_listing                                 = (known after apply)
+      + environment                                       = (sensitive value)
+      + framework                                         = "nestjs"
+      + function_failover                                 = (known after apply)
+      + git_fork_protection                               = true
+      + git_lfs                                           = (known after apply)
+      + git_repository                                    = {
+          + production_branch = (known after apply)
+          + repo              = "lexcesar/obra-facil"
+          + type              = "github"
+        }
+      + id                                                = (known after apply)
+      + name                                              = "app-devai-backend"
+      + node_version                                      = (known after apply)
+      + oidc_token_config                                 = {
+          + enabled     = false
+          + issuer_mode = "global"
+        }
+      + prioritise_production_builds                      = (known after apply)
+      + protection_bypass_for_automation_secret           = (sensitive value)
+      + resource_config                                   = (known after apply)
+      + serverless_function_region                        = (known after apply)
+      + team_id                                           = (known after apply)
+      + vercel_authentication                             = {
+          + deployment_type = "standard_protection"
+        }
+    }
+
+  # vercel_project.frontend will be created
+  + resource "vercel_project" "frontend" {
+      + auto_assign_custom_domains                        = true
+      + automatically_expose_system_environment_variables = (known after apply)
+      + customer_success_code_visibility                  = (known after apply)
+      + directory_listing                                 = (known after apply)
+      + environment                                       = (sensitive value)
+      + framework                                         = "nextjs"
+      + function_failover                                 = (known after apply)
+      + git_fork_protection                               = true
+      + git_lfs                                           = (known after apply)
+      + git_repository                                    = {
+          + production_branch = (known after apply)
+          + repo              = "lexcesar/obra-facil"
+          + type              = "github"
+        }
+      + id                                                = (known after apply)
+      + name                                              = "app-devai-frontend"
+      + node_version                                      = (known after apply)
+      + oidc_token_config                                 = {
+          + enabled     = false
+          + issuer_mode = "global"
+        }
+      + prioritise_production_builds                      = (known after apply)
+      + protection_bypass_for_automation_secret           = (sensitive value)
+      + resource_config                                   = (known after apply)
+      + root_directory                                    = "apps/frontend"
+      + serverless_function_region                        = (known after apply)
+      + team_id                                           = (known after apply)
+      + vercel_authentication                             = {
+          + deployment_type = "standard_protection"
+        }
+    }
+
+Plan: 2 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + backend_project_id  = (known after apply)
+  + frontend_project_id = (known after apply)
