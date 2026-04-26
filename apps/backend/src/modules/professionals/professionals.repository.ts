@@ -68,25 +68,25 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
     /** Profile ID to exclude from results (prevents self-hire) */
     excludeProfileId?: string;
   }): Promise<ProfessionalWithProfile[]> {
-    // Mapeamento de termos amigáveis (UI) para raízes comuns em 'specialty' ou 'bio'
-    let mappedService = service;
-    if (service) {
-      // Normaliza para remover acentos antes de comparar, evitando falhas NFC/NFD
-      const normalize = (str: string) =>
-        str
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[̀-ͯ]/g, '');
-      const s = normalize(service);
-      if (s.includes('eletric')) mappedService = 'eletric';
-      else if (s.includes('hidraul') || s.includes('encanador'))
-        mappedService = 'encanad';
-      else if (s.includes('pintur') || s.includes('pintor'))
-        mappedService = 'pint';
-      else if (s.includes('diarista')) mappedService = 'diarista';
-      else if (s.includes('pedreiro')) mappedService = 'pedreir';
-      else if (s.includes('marceneir')) mappedService = 'marceneir';
-    }
+    const normalizeAndMapTerm = (term?: string): string | null => {
+      if (!term) return null;
+      const s = term
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+      if (s.includes('eletric')) return 'eletric';
+      if (s.includes('hidraul') || s.includes('encanador')) return 'encanad';
+      if (s.includes('pintur') || s.includes('pintor')) return 'pint';
+      if (s.includes('diarista') || s.includes('limpez')) return 'diarista';
+      if (s.includes('pedreiro') || s.includes('reform')) return 'pedreir';
+      if (s.includes('marceneir') || s.includes('moveis')) return 'marceneir';
+
+      return term;
+    };
+
+    const queryTerm = normalizeAndMapTerm(query);
+    const serviceTerm = normalizeAndMapTerm(service);
 
     const { rows } = await this.db.query(
       `SELECT ${COLS}
@@ -107,10 +107,10 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
        ORDER BY p.rating_avg DESC, p.published_at DESC
        LIMIT $3 OFFSET $4`,
       [
-        query ?? null,
-        mappedService ?? null,
-        limit,
-        offset,
+        queryTerm,
+        serviceTerm,
+        limit ?? 10,
+        offset ?? 0,
         excludeProfileId ?? null,
       ],
     );
