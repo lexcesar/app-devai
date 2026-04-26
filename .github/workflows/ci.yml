@@ -81,6 +81,11 @@ jobs:
           eval "$PG -f docker/05-professional-visibility.sql"
           eval "$PG -f docker/06-rejection-reason.sql"
           eval "$PG -f docker/06-notifications.sql"
+          eval "$PG -f docker/07-fix-profile-full-name.sql"
+          eval "$PG -f docker/07-professionals-unique.sql"
+          eval "$PG -f docker/08-avatar-id.sql"
+          eval "$PG -f docker/08-visits-structured-fields.sql"
+          eval "$PG -f docker/09-reviews-work-id.sql"
 
       - name: Testes unitários backend (Jest)
         run: npm test --workspace=backend
