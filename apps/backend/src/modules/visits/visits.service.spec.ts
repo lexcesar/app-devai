@@ -13,6 +13,7 @@ function makeProfile(overrides: Partial<Profile> = {}): Profile {
     clerk_id: 'c1',
     full_name: 'Carlos',
     avatar_url: null,
+    avatar_id: null,
     phone: null,
     role: 'client',
     created_at: '2026-04-18T00:00:00Z',
@@ -36,6 +37,10 @@ describe('VisitsService', () => {
   };
   let worksRepo: {
     createFromVisit: jest.Mock;
+    cancelByVisitId: jest.Mock;
+  };
+  let professionalsRepo: {
+    findById: jest.Mock;
   };
   let service: VisitsService;
 
@@ -54,6 +59,10 @@ describe('VisitsService', () => {
     };
     worksRepo = {
       createFromVisit: jest.fn().mockResolvedValue({ id: 'work-1' }),
+      cancelByVisitId: jest.fn().mockResolvedValue(undefined),
+    };
+    professionalsRepo = {
+      findById: jest.fn(),
     };
     service = new VisitsService(
       availabilityRepo as never,
@@ -61,6 +70,7 @@ describe('VisitsService', () => {
       new OwnershipService(),
       { notify: jest.fn() } as never,
       worksRepo as never,
+      professionalsRepo as never,
     );
   });
 
@@ -122,16 +132,40 @@ describe('VisitsService', () => {
     const validInput = {
       professionalId: '12345678-1234-4234-8234-123456789012',
       scheduledAt: '2026-05-01T17:00:00.000Z',
+      street: 'Rua Teste',
+      streetNumber: '1',
+      neighborhood: 'Centro',
+      cityName: 'São Paulo',
+      stateCode: 'SP',
+      requesterName: 'Carlos',
+      serviceType: 'Elétrica',
+      description: 'Preciso instalar tomadas novas no escritório',
       address: 'Rua Teste, 1',
     };
 
+    beforeEach(() => {
+      professionalsRepo.findById.mockResolvedValue({
+        id: 'pro-1',
+        profile_id: 'pro-profile-1',
+      });
+    });
+
     it('creates the visit with sanitized payload', async () => {
       visitsRepo.create.mockResolvedValue({ id: 'v-new' });
-      const result = await service.book('client-1', validInput);
+      const result = await service.book(makeProfile(), validInput);
       expect(visitsRepo.create).toHaveBeenCalledWith({
         clientId: 'client-1',
         professionalId: validInput.professionalId,
         scheduledAt: validInput.scheduledAt,
+        street: validInput.street,
+        streetNumber: validInput.streetNumber,
+        complement: undefined,
+        neighborhood: validInput.neighborhood,
+        cityName: validInput.cityName,
+        stateCode: 'SP',
+        requesterName: validInput.requesterName,
+        serviceType: validInput.serviceType,
+        description: validInput.description,
         address: validInput.address,
         notes: undefined,
       });
@@ -141,20 +175,20 @@ describe('VisitsService', () => {
     it('translates unique-constraint (double booking) to Conflict', async () => {
       const err = Object.assign(new Error('duplicate'), { code: '23505' });
       visitsRepo.create.mockRejectedValue(err);
-      await expect(service.book('client-1', validInput)).rejects.toBeInstanceOf(
+      await expect(service.book(makeProfile(), validInput)).rejects.toBeInstanceOf(
         ConflictException,
       );
     });
 
     it('rethrows non-constraint errors', async () => {
       visitsRepo.create.mockRejectedValue(new Error('boom'));
-      await expect(service.book('client-1', validInput)).rejects.toThrow(
+      await expect(service.book(makeProfile(), validInput)).rejects.toThrow(
         /boom/,
       );
     });
 
     it('rejects invalid Zod payload', async () => {
-      await expect(service.book('client-1', {})).rejects.toThrow();
+      await expect(service.book(makeProfile(), {})).rejects.toThrow();
       expect(visitsRepo.create).not.toHaveBeenCalled();
     });
   });

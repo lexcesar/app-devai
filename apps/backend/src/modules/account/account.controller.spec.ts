@@ -14,6 +14,7 @@ describe('AccountController', () => {
     clerk_id: 'clerk-001',
     full_name: 'Jackson Miranda',
     avatar_url: null,
+    avatar_id: null,
     phone: null,
     role: 'client',
     created_at: new Date().toISOString(),
