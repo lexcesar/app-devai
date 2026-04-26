@@ -11,13 +11,7 @@ O **Obra Fácil** é um marketplace inovador que conecta proprietários de imóv
 ---
 
 ## 🎯 O Problema
-Proprietários de residências sofrem com a falta de confiança em profissionais aleatórios, orçamentos opacos e a dificuldade de conciliar a mão de obra com a compra de materiais. O **Obra Fácil** centraliza essa jornada, garantindo segurança através de avaliações reais e agilidade via geolocalização.
-
-## 👥 Persona Principal
-**Carlos Alberto, 45 anos (Despachante)**
-Um usuário que busca agilidade e segurança, mas possui pouco tempo para pesquisas presenciais e sente-se inseguro ao receber desconhecidos em casa sem referências sólidas.
-
----
+Proprietários de residências frequentemente enfrentam falta de confiança, orçamentos opacos e a dificuldade de conciliar a mão de obra com a compra de materiais. O **Obra Fácil** centraliza essa jornada, garantindo segurança através de avaliações reais e agilidade via geolocalização.
 
 ## 🚀 Funcionalidades Principais
 - 🔍 **Busca Inteligente:** Encontre Pedreiros, Eletricistas e Pintores por geolocalização.
@@ -28,170 +22,82 @@ Um usuário que busca agilidade e segurança, mas possui pouco tempo para pesqui
 
 ---
 
-## 📂 Documentação do Projeto
-Para facilitar a navegação no repositório, consulte os documentos detalhados:
-
-* [📄 PRD (Requisitos)](docs/01-produto/prd.md) - Visão geral e regras de negócio.
-* [🛠️ Especificação Técnica](docs/02-arquitetura/spec_tech.md) - Arquitetura, Backend e Frontend.
-* [🎨 Guia de UI/UX](docs/03-design-ux/spec_ui.md) - Fluxo de telas e identidade visual.
-* [💡 Definição do Problema](docs/01-produto/definicao_problema.md) - Contexto e impacto no mercado.
-* [stitch](https://stitch.withgoogle.com/projects/10387496590250121391) - Design do projeto
-
----
-
 ## 🛠️ Stack Tecnológica
 
 | Camada | Tecnologia | Detalhes |
 |---|---|---|
-| **Frontend** | Next.js 15, React 19 | Layout responsivo (Tailwind CSS), ES2020+ |
-| **Backend** | NestJS 11 | API RESTful protegida, TypeScript |
-| **Banco de Dados** | PostgreSQL 17 | Persistência relacional protegida |
-| **Autenticação** | Clerk | Autenticação externa & RBAC |
-| **IA (NLP)** | Claude 3.5 Haiku | Geração inteligente de lista de materiais |
-| **Observabilidade** | Pino / Winston | Logs estruturados, Correlação de RequestID |
-| **Infraestrutura** | Docker / Terraform | Containers OCI, IaC (Vercel/Supabase) |
+| **Frontend** | Next.js 15 (App Router) | React 19, Tailwind CSS, Componentes Responsivos |
+| **Backend** | NestJS 11 | API RESTful, Arquitetura Modular, TypeScript |
+| **Banco de Dados** | PostgreSQL 17 | Persistência Relacional (Supabase/Docker) |
+| **Autenticação** | Clerk | Gestão de Identidade e Controle de Acesso (RBAC) |
+| **IA (NLP)** | Gemini 1.5 Flash | Geração inteligente de lista de materiais |
+| **Infraestrutura** | Docker | Containers OCI para ambiente de desenvolvimento |
 
 ---
 
 ## 🧱 Requisitos Não Funcionais (RNFs)
 
-O projeto foi concebido para atender a padrões rigorosos de engenharia de software, mapeados conforme os requisitos abaixo:
+O projeto segue padrões rigorosos de engenharia de software para garantir escalabilidade e manutenção:
 
-| ID | Requisito | Implementação Técnica |
-|---|---|---|
-| **RNF-01** | Acessibilidade e Portabilidade | Frontend Next.js com Tailwind CSS (Mobile-First) e compilação para ES2020+. |
-| **RNF-02** | Segurança | Autenticação via **Clerk**, RBAC via Metadados, HTTPS forçado e DB encryption at-rest. |
-| **RNF-03** | Interoperabilidade | Funcionalidades expostas via **API RESTful** documentada com Swagger/OpenAPI. |
-| **RNF-04** | Observabilidade | Logs estruturados (Pino), Correlation IDs, Healthchecks e Auditoria em tempo real. |
-| **RNF-05** | Manutenibilidade | Suíte completa: Jest (Unit/E2E Backend), Vitest e Playwright (Frontend). |
-| **RNF-06** | Implantação e Portabilidade | Empacotamento **Docker (OCI)** e automação via **Terraform (IaC)** e GitHub Actions. |
-| **RNF-07** | Persistência | Uso de **PostgreSQL 17** com transações ACID e esquemas tipados via Prisma. |
-| **RNF-08** | Governança | Git (GitHub), Gestão de dependências (npm), Configuração via variáveis `.env`. |
+- **Segurança (RNF-02):** Autenticação via Clerk com RBAC baseado em metadados.
+- **Interoperabilidade (RNF-03):** API RESTful documentada via Swagger/OpenAPI.
+- **Observabilidade (RNF-04):** Logs estruturados com Pino e correlação de Request IDs.
+- **Manutenibilidade (RNF-05):** Suíte de testes com Jest (Backend) e Vitest/Playwright (Frontend).
+- **Portabilidade (RNF-06):** Ambiente totalmente conteinerizado com Docker.
+
+---
+
+## 📂 Estrutura do Repositório
+
+```bash
+obra-facil/
+├── apps/
+│   ├── frontend/          # Aplicação Web (Next.js)
+│   └── backend/           # API Core (NestJS)
+├── packages/
+│   └── shared/            # Tipagens e Schemas compartilhados
+├── docker/                # Scripts de Inicialização e Seed do DB
+├── docs/                  # Documentação detalhada (PRD, Arquitetura, UI)
+└── .github/workflows/     # CI/CD Pipelines
+```
 
 ---
 
 ## ⚡ Setup Local
 
-> Guia completo: [docs/04-ambiente-e-processos/setup-local.md](docs/04-ambiente-e-processos/setup-local.md)
+Para rodar o projeto localmente, você precisará do **Node.js 20+** e **Docker**.
 
-**Pré-requisitos**: Node.js 20+, Docker Desktop
-
-```bash
-# Clone o repositório
-git clone https://github.com/lexcesar/obra-facil.git
-cd obra-facil
-
-# Instale as dependências
-npm install
-
-# Configure as variáveis de ambiente (valores padrão já funcionam)
-cp apps/backend/.env.example apps/backend/.env
-cp apps/frontend/.env.local.example apps/frontend/.env.local
-
-# Suba o ambiente completo (DB + Backend + Frontend)
-npm run docker:up
-```
-
-Acesse:
-
-| Serviço | URL local | URL produção |
-|---|---|---|
-| Frontend (Next.js) | http://localhost:3000 | https://app-devai-frontend.vercel.app |
-| Backend API | http://localhost:3333/api | https://app-devai-backend.vercel.app/api |
-| **Swagger (OpenAPI)** | http://localhost:3333/api/docs | https://app-devai-backend.vercel.app/api/docs |
-| Health check | http://localhost:3333/api/health | https://app-devai-backend.vercel.app/api/health |
-
-### 📖 Swagger / OpenAPI
-
-O backend expõe toda a API em **Swagger UI** em `/api/docs` — útil pra explorar endpoints, ver schemas de request/response e testar chamadas diretamente pelo navegador.
-
-Principais grupos de endpoints documentados:
-- `professionals` — busca de profissionais, dashboard
-- `orders` — pedidos de materiais (isolados por cliente)
-- `works` — obras (iniciar, atualizar progresso, concluir)
-- `visits` — visitas técnicas (agendar, cancelar, concluir)
-- `material-lists` / `messages` / `conversations` — fluxo de cotação
-- `ai` — geração de cotação por IA
-- `health` — healthcheck
-- `webhooks` — integração Clerk
-
----
-
-### 🔑 Perfis de teste (modo bypass — ambiente LOCAL)
-
-No ambiente local (`DISABLE_CLERK_AUTH=true`), o usuário logado é escolhido pela env `NEXT_PUBLIC_BYPASS_USER_CLERK_ID` no frontend ou pelo header `X-Dev-User-Id` no backend. Perfis disponíveis no seed:
-
-| clerk_id | Nome | Role |
-|---|---|---|
-| `demo_client_001` (default) | Carlos Alberto | client |
-| `demo_client_002` | Joana Mendes | client |
-| `demo_professional_001` | Ricardo Silva | professional |
-| `demo_professional_002` | José da Silva | professional |
-| `demo_professional_003` | Ana Rodrigues | professional |
-
-### 🧪 Credenciais de avaliação (ambiente de PRODUÇÃO)
-
-Em produção o Clerk está ativo e não usa bypass. Para avaliação pela banca, o time cria duas contas reais seguindo o processo abaixo.
-
-#### Como criar um usuário **cliente**
-1. Abrir https://app-devai-frontend.vercel.app/sign-up
-2. Cadastrar com email e senha (verificação por email do Clerk)
-3. O backend faz JIT provisioning (ou o webhook do Clerk) e cria um profile com `role='client'` automaticamente
-4. A conta já tem acesso a `/pedidos`, `/cotacao/ia`, `/busca`
-
-#### Como criar um usuário **profissional**
-1. Seguir os passos 1–3 acima (criar conta via sign-up)
-2. Entrar em https://dashboard.clerk.com → **Users** → selecionar o usuário
-3. Em **Public metadata**, definir:
-   ```json
-   { "role": "professional" }
+1. **Clone o repositório:**
+   ```bash
+   git clone https://github.com/lexcesar/obra-facil.git
+   cd obra-facil
    ```
-4. Salvar. O webhook `user.updated` atualiza `profiles.role` no banco
-5. Deslogar e logar novamente
-6. A conta passa a ter acesso a `/profissional/dashboard` (com ações de iniciar/concluir obra e concluir/cancelar visitas)
 
-> **Observação para o time**: as credenciais reais (email/senha) não ficam versionadas neste repositório — são entregues à banca via canal seguro (chat do Canvas, etc.).
+2. **Instale as dependências:**
+   ```bash
+   npm install
+   ```
+
+3. **Inicie o ambiente de desenvolvimento:**
+   ```bash
+   npm run docker:up
+   ```
+
+Para guias detalhados sobre variáveis de ambiente e processos de desenvolvimento, consulte a [Documentação de Setup](docs/04-ambiente-e-processos/setup-local.md).
 
 ---
 
-## 📂 Estrutura do Projeto
+## 📖 Documentação Adicional
 
-```
-obra-facil/
-├── apps/
-│   ├── frontend/          # Next.js 15 (App Router)
-│   └── backend/           # NestJS 11
-├── packages/
-│   └── shared/            # Types, schemas Zod, interfaces
-├── docker/
-│   ├── 01-schema.sql      # Schema do banco de dados
-│   └── 02-seed.sql        # Dados de exemplo
-├── docs/
-│   ├── 01-produto/        # PRD, personas, jornada, lean canvas
-│   ├── 02-arquitetura/    # Arquitetura técnica e spec
-│   ├── 03-design-ux/      # Design system, UI spec
-│   ├── 04-ambiente-e-processos/  # Setup local, fluxo git, variáveis
-│   └── 05-prompts-e-referencias/ # Prompts de IA e referências
-├── scripts/
-│   └── setup/             # Scripts de configuração e ferramentas
-└── .github/workflows/ # CI/CD pipelines
-```
-
-### 📚 Documentação
-
-| Documento | Descrição |
-|---|---|
-| [docs/04-ambiente-e-processos/setup-local.md](docs/04-ambiente-e-processos/setup-local.md) | Como rodar o projeto localmente |
-| [docs/02-arquitetura/arquitetura.md](docs/02-arquitetura/arquitetura.md) | Arquitetura técnica detalhada |
-| [docs/04-ambiente-e-processos/variaveis-ambiente.md](docs/04-ambiente-e-processos/variaveis-ambiente.md) | Todas as variáveis de ambiente |
-| [docs/04-ambiente-e-processos/fluxo-git.md](docs/04-ambiente-e-processos/fluxo-git.md) | Convenções de branches e commits |
-| [docs/01-produto/prd.md](docs/01-produto/prd.md) | Product Requirements Document |
-| [docs/02-arquitetura/spec_tech.md](docs/02-arquitetura/spec_tech.md) | Especificação técnica |
+* [📄 PRD (Requisitos)](docs/01-produto/prd.md)
+* [🛠️ Especificação Técnica](docs/02-arquitetura/spec_tech.md)
+* [🎨 Guia de UI/UX](docs/03-design-ux/spec_ui.md)
+* [🔐 Variáveis de Ambiente](docs/04-ambiente-e-processos/variaveis-ambiente.md)
 
 ---
 
 ## 👥 Equipe
-Projeto desenvolvido como parte do trabalho final de Práticas de Implementação e Evolução de Software:
+Projeto desenvolvido por:
 - Alexander Cesar Luiz Costa
 - Anderson Arruda
 - Jackson Jovino Miranda
