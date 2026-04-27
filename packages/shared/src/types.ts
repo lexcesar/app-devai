@@ -12,7 +12,7 @@ export type UserRole = 'client' | 'professional' | 'store';
 export type MessageType = 'text' | 'image' | 'audio' | 'material_list';
 export type MaterialListStatus = 'draft' | 'sent' | 'quoted';
 export type OrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered';
-export type WorkStatus = 'scheduled' | 'active' | 'completed';
+export type WorkStatus = 'scheduled' | 'active' | 'completed' | 'cancelled';
 export type VisitStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rejected';
 
 /**
@@ -53,6 +53,7 @@ export interface Database {
           id: string;
           clerk_id: string;
           full_name: string;
+          avatar_id: string | null;
           avatar_url: string | null;
           phone: string | null;
           role: UserRole;
@@ -63,6 +64,7 @@ export interface Database {
           id?: string;
           clerk_id: string;
           full_name: string;
+          avatar_id?: string | null;
           avatar_url?: string | null;
           phone?: string | null;
           role?: UserRole;
@@ -129,6 +131,7 @@ export interface Database {
       reviews: {
         Row: {
           id: string;
+          work_id: string | null;
           professional_id: string;
           reviewer_id: string;
           rating: number;
@@ -137,6 +140,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          work_id?: string | null;
           professional_id: string;
           reviewer_id: string;
           rating: number;
@@ -363,6 +367,18 @@ export interface Database {
         professional_id: string;
         scheduled_at: string;
         status: VisitStatus;
+        // Structured address
+        street: string | null;
+        street_number: string | null;
+        complement: string | null;
+        neighborhood: string | null;
+        city_name: string | null;
+        state_code: string | null;
+        // Booking metadata
+        requester_name: string | null;
+        service_type: string | null;
+        description: string | null;
+        // Legacy (kept for compatibility)
         address: string | null;
         notes: string | null;
         cancelled_by: string | null;
@@ -376,6 +392,15 @@ export interface Database {
         professional_id: string;
         scheduled_at: string;
         status?: VisitStatus;
+        street?: string | null;
+        street_number?: string | null;
+        complement?: string | null;
+        neighborhood?: string | null;
+        city_name?: string | null;
+        state_code?: string | null;
+        requester_name?: string | null;
+        service_type?: string | null;
+        description?: string | null;
         address?: string | null;
         notes?: string | null;
         cancelled_by?: string | null;
@@ -484,6 +509,7 @@ export type VisitFull = Visit & {
 // ── Notifications ────────────────────────────────────────────────────────────
 
 export type NotificationType =
+  | 'visit_requested'
   | 'visit_accepted'
   | 'visit_rejected'
   | 'visit_cancelled'
@@ -500,5 +526,6 @@ export interface Notification {
   message: string;
   link: string | null;
   is_read: boolean;
+  metadata: Record<string, unknown> | null;
   created_at: string;
 }

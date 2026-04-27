@@ -4,19 +4,29 @@ import { cookies } from 'next/headers';
 import { SignOutButton } from '@clerk/nextjs';
 import Link from 'next/link';
 import { ACTING_AS_COOKIE } from '@/lib/acting-as';
+import { ProfileNameEditor } from '@/components/perfil/ProfileNameEditor';
+import { AvatarSelectorModal } from '@/components/perfil/AvatarSelectorModal';
+import { api } from '@/lib/api/client';
+import type { AccountContext } from '@obrafacil/shared';
 
 export default async function PerfilPage() {
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');
 
   const cookieStore = await cookies();
-  const actingAs = cookieStore.get(ACTING_AS_COOKIE)?.value ?? 'client';
+  const actingAs = (cookieStore.get(ACTING_AS_COOKIE)?.value ?? 'client') as 'client' | 'professional';
   const isProfessional = actingAs === 'professional';
 
-  const user = await currentUser();
-  const name = user?.fullName ?? 'Usuário';
+  const [user, account] = await Promise.all([
+    currentUser(),
+    api.get<AccountContext>('/v1/account/me').catch(() => null),
+  ]);
+
+  // Prefer DB values (profiles table) over Clerk — DB is the source of truth after any edit.
+  const name = account?.profile.full_name ?? user?.fullName ?? 'Usuário';
+  const avatarId = account?.profile.avatar_id ?? null;
+  const avatarUrl = account?.profile.avatar_url ?? user?.imageUrl ?? null;
   const email = user?.emailAddresses?.[0]?.emailAddress ?? '';
-  const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <div className="pb-24 bg-[#f8f6f6] min-h-screen">
@@ -25,16 +35,15 @@ export default async function PerfilPage() {
 
         {/* Avatar + Name */}
         <div className="flex flex-col items-center">
-          <div className="w-20 h-20 rounded-full bg-[#ec5b13] flex items-center justify-center text-white text-2xl font-bold">
-            {user?.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.imageUrl} alt={name} className="w-full h-full rounded-full object-cover" />
-            ) : (
-              initials
-            )}
-          </div>
+          <AvatarSelectorModal
+            currentAvatarId={avatarId}
+            currentAvatarUrl={avatarUrl}
+            name={name}
+            actingAs={actingAs}
+          />
           <p className="text-lg font-bold text-slate-900 mt-3">{name}</p>
           <p className="text-sm text-slate-400">{email}</p>
+          <ProfileNameEditor initialName={name} />
         </div>
       </div>
 

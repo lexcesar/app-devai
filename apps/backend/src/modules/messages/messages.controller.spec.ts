@@ -13,6 +13,7 @@ describe('MessagesController', () => {
     clerk_id: 'clerk-1',
     full_name: 'Alex',
     avatar_url: null,
+    avatar_id: null,
     phone: null,
     role: 'client',
     created_at: new Date().toISOString(),

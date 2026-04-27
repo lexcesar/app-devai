@@ -4,7 +4,9 @@ import { auth } from '@/lib/auth-bypass';
 import { api } from '@/lib/api/client';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Avatar } from '@/components/ui/Avatar';
+import { ReviewForm } from '@/components/reviews/ReviewForm';
 import Link from 'next/link';
+import type { AccountContext, ReviewWithReviewer } from '@obrafacil/shared';
 
 const STATUS_MAP: Record<string, { label: string; variant: 'ativo' | 'agendado' | 'entregue' | 'cancelado' | 'pendente' | 'a-caminho' }> = {
   in_progress: { label: 'Em Andamento', variant: 'ativo' },
@@ -24,10 +26,15 @@ export default async function SolicitacaoDetailPage({
 
   const { id } = await params;
 
+  // Fetch work and account in parallel
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let work: any = null;
+  let account: AccountContext | null = null;
   try {
-    work = await api.get(`/v1/works/${id}`);
+    [work, account] = await Promise.all([
+      api.get(`/v1/works/${id}`),
+      api.get<AccountContext>('/v1/account/me').catch(() => null),
+    ]);
   } catch {
     notFound();
   }
@@ -40,6 +47,19 @@ export default async function SolicitacaoDetailPage({
   const progress = w.progress_pct ?? 0;
   const prof = w.professionals?.profiles;
   const isActive = w.status === 'in_progress';
+  const isCompleted = w.status === 'completed';
+
+  // Determine if the viewer is the client of this work
+  const viewerProfileId = account?.profile?.id ?? null;
+  const isClient = viewerProfileId === w.client_id;
+
+  // Fetch existing review if work is completed (only matters for the review section)
+  let existingReview: ReviewWithReviewer | null = null;
+  if (isCompleted) {
+    existingReview = await api
+      .get<ReviewWithReviewer>(`/v1/works/${id}/review`)
+      .catch(() => null);
+  }
 
   return (
     <div className="pb-24 bg-[#f8f6f6] min-h-screen">
@@ -165,6 +185,54 @@ export default async function SolicitacaoDetailPage({
             </div>
           </div>
         </div>
+
+        {/* ── Review section (completed works only) ───────────── */}
+        {isCompleted && isClient && (
+          <ReviewForm
+            workId={id}
+            professionalName={prof?.full_name ?? 'Profissional'}
+            existingReview={existingReview}
+          />
+        )}
+
+        {/* ── Waiting for review — professional view ──────────── */}
+        {isCompleted && !isClient && !existingReview && (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-slate-400 text-xl">schedule</span>
+              <div>
+                <p className="text-sm font-semibold text-slate-700">Aguardando avaliação</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  O cliente ainda não avaliou este serviço.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Review received — professional view ─────────────── */}
+        {isCompleted && !isClient && existingReview && (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="material-symbols-outlined text-savings text-xl">star</span>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+                Avaliação recebida
+              </p>
+            </div>
+            <div className="flex gap-1 mb-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <span key={star} className="text-2xl" style={{ color: star <= existingReview!.rating ? '#f59e0b' : '#d1d5db' }}>
+                  {star <= existingReview!.rating ? '★' : '☆'}
+                </span>
+              ))}
+            </div>
+            {existingReview.comment && (
+              <p className="text-sm text-slate-600 italic leading-relaxed">
+                &ldquo;{existingReview.comment}&rdquo;
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

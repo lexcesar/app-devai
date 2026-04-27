@@ -3,47 +3,58 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/ui/StickyBottomCTA';
-import { isAuthBypassEnabled, BYPASS_USER_CLERK_ID } from '@/lib/auth-bypass-config';
-import { DEV_USER_ID_HEADER, ACTING_AS_HEADER } from '@obrafacil/shared';
-import { getActingAs } from '@/lib/acting-as';
+import { useClientApi } from '@/lib/api/client-api';
+import { ReasonModal } from './ReasonModal';
 
 interface VisitaActionsProps {
   visitId: string;
   status: string;
   userRole: string;
+  clientName?: string;
 }
 
-export function VisitaActions({ visitId, status, userRole }: VisitaActionsProps) {
+export function VisitaActions({ visitId, status, userRole, clientName }: VisitaActionsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
+  const api = useClientApi();
 
-  const buildHeaders = () => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (isAuthBypassEnabled) headers[DEV_USER_ID_HEADER] = BYPASS_USER_CLERK_ID;
-    const actingAs = getActingAs();
-    if (actingAs) headers[ACTING_AS_HEADER] = actingAs;
-    return headers;
-  };
-
-  const handleAction = async (action: 'cancel' | 'complete' | 'accept' | 'reject') => {
+  const handleAccept = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${apiUrl}/v1/visits/${visitId}/${action}`, {
-        method: 'PATCH',
-        headers: buildHeaders(),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as { error?: string };
-        setError(body.error ?? 'Erro ao atualizar visita');
-        return;
-      }
+      await api.patch(`/v1/visits/${visitId}/accept`, {});
       router.refresh();
-    } catch {
-      setError('Erro de conexão');
+    } catch (err: unknown) {
+      setError((err as Error).message ?? 'Erro ao aceitar visita');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async (reason: string) => {
+    await api.patch(`/v1/visits/${visitId}/reject`, { reason });
+    setShowRejectModal(false);
+    router.refresh();
+  };
+
+  const handleCancel = async (reason: string) => {
+    await api.patch(`/v1/visits/${visitId}/cancel`, { reason });
+    setShowCancelModal(false);
+    router.refresh();
+  };
+
+  const handleComplete = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.patch(`/v1/visits/${visitId}/complete`, {});
+      router.refresh();
+    } catch (err: unknown) {
+      setError((err as Error).message ?? 'Erro ao concluir visita');
     } finally {
       setLoading(false);
     }
@@ -51,72 +62,117 @@ export function VisitaActions({ visitId, status, userRole }: VisitaActionsProps)
 
   if (status === 'pending' && userRole === 'professional') {
     return (
-      <div className="flex flex-col gap-2 mt-6">
-        <div className="flex gap-3">
-          <PrimaryButton
-            variant="trust"
-            onClick={() => handleAction('accept')}
-            loading={loading}
-          >
-            <span className="material-symbols-outlined text-xl">check_circle</span>
-            Aceitar Visita
-          </PrimaryButton>
-          <button
-            onClick={() => handleAction('reject')}
-            disabled={loading}
-            className="flex-1 h-12 rounded-xl border-2 border-error text-error font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-lg">cancel</span>
-            Recusar
-          </button>
+      <>
+        <div className="flex flex-col gap-2 mt-6">
+          <div className="flex gap-3">
+            <PrimaryButton
+              variant="trust"
+              onClick={handleAccept}
+              loading={loading}
+            >
+              <span className="material-symbols-outlined text-xl">check_circle</span>
+              Aceitar Visita
+            </PrimaryButton>
+            <button
+              onClick={() => setShowRejectModal(true)}
+              disabled={loading}
+              className="flex-1 h-12 rounded-xl border-2 border-error text-error font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-lg">cancel</span>
+              Recusar
+            </button>
+          </div>
+          {error && <p className="text-xs text-error text-center font-medium">{error}</p>}
         </div>
-        {error && <p className="text-xs text-error text-center font-medium">{error}</p>}
-      </div>
+
+        {showRejectModal && (
+          <ReasonModal
+            title="Recusar visita"
+            subtitle={clientName ?? 'Cliente'}
+            placeholder="Ex: Horário indisponível, fora da área de atuação..."
+            confirmLabel="Recusar visita"
+            confirmClassName="bg-red-500 hover:bg-red-600"
+            onConfirm={handleReject}
+            onCancel={() => setShowRejectModal(false)}
+          />
+        )}
+      </>
     );
   }
 
   if (status === 'pending' && userRole === 'client') {
     return (
-      <div className="flex flex-col gap-2 mt-6">
-        <button
-          onClick={() => handleAction('cancel')}
-          disabled={loading}
-          className="w-full h-12 rounded-xl border-2 border-error text-error font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
-        >
-          <span className="material-symbols-outlined text-lg">cancel</span>
-          Cancelar Solicitação
-        </button>
-        {error && <p className="text-xs text-error text-center font-medium">{error}</p>}
-      </div>
+      <>
+        <div className="flex flex-col gap-2 mt-6">
+          <button
+            onClick={() => setShowCancelModal(true)}
+            disabled={loading}
+            className="w-full h-12 rounded-xl border-2 border-error text-error font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-lg">cancel</span>
+            Cancelar Solicitação
+          </button>
+          {error && <p className="text-xs text-error text-center font-medium">{error}</p>}
+        </div>
+
+        {showCancelModal && (
+          <ReasonModal
+            title="Cancelar solicitação"
+            subtitle="Informe o motivo do cancelamento"
+            placeholder="Ex: Já resolvi o problema, mudei de planos..."
+            confirmLabel="Cancelar visita"
+            confirmClassName="bg-red-500 hover:bg-red-600"
+            onConfirm={handleCancel}
+            onCancel={() => setShowCancelModal(false)}
+          />
+        )}
+      </>
     );
   }
 
   if (status !== 'confirmed') return null;
 
   return (
-    <div className="flex flex-col gap-2 mt-6">
-      {userRole === 'professional' && (
-        <PrimaryButton
-          variant="savings"
-          onClick={() => handleAction('complete')}
-          loading={loading}
+    <>
+      <div className="flex flex-col gap-2 mt-6">
+        {userRole === 'professional' && (
+          <PrimaryButton
+            variant="savings"
+            onClick={handleComplete}
+            loading={loading}
+          >
+            <span className="material-symbols-outlined text-xl">check_circle</span>
+            Marcar como Concluída
+          </PrimaryButton>
+        )}
+
+        <button
+          onClick={() => setShowCancelModal(true)}
+          disabled={loading}
+          className="w-full h-12 rounded-xl border-2 border-error text-error font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
         >
-          <span className="material-symbols-outlined text-xl">check_circle</span>
-          Marcar como Concluída
-        </PrimaryButton>
+          <span className="material-symbols-outlined text-lg">cancel</span>
+          Cancelar Visita
+        </button>
+
+        {error && <p className="text-xs text-error text-center font-medium">{error}</p>}
+      </div>
+
+      {showCancelModal && (
+        <ReasonModal
+          title="Cancelar visita"
+          subtitle="Informe o motivo do cancelamento"
+          placeholder={userRole === 'professional'
+            ? 'Ex: Tive um imprevisto, não poderei comparecer...'
+            : 'Ex: Já resolvi o problema, mudei de planos...'}
+          confirmLabel="Cancelar visita"
+          confirmClassName="bg-red-500 hover:bg-red-600"
+          onConfirm={handleCancel}
+          onCancel={() => setShowCancelModal(false)}
+        />
       )}
-
-      <button
-        onClick={() => handleAction('cancel')}
-        disabled={loading}
-        className="w-full h-12 rounded-xl border-2 border-error text-error font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
-      >
-        <span className="material-symbols-outlined text-lg">cancel</span>
-        Cancelar Visita
-      </button>
-
-      {error && <p className="text-xs text-error text-center font-medium">{error}</p>}
-    </div>
+    </>
   );
 }
+
 

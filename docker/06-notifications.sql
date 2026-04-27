@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   message     TEXT        NOT NULL,
   link        TEXT,
   is_read     BOOLEAN     NOT NULL DEFAULT false,
+  metadata    JSONB,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

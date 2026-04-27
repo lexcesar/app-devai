@@ -80,8 +80,12 @@ export class WebhooksController {
           `INSERT INTO profiles (clerk_id, full_name, avatar_url, phone, role)
            VALUES ($1, $2, $3, $4, $5)
            ON CONFLICT (clerk_id) DO UPDATE SET
-             full_name = EXCLUDED.full_name,
-             avatar_url = EXCLUDED.avatar_url,
+             full_name = CASE
+               WHEN profiles.full_name = 'Usuário' OR profiles.full_name = ''
+               THEN EXCLUDED.full_name
+               ELSE profiles.full_name
+             END,
+             avatar_url = COALESCE(profiles.avatar_url, EXCLUDED.avatar_url),
              phone = EXCLUDED.phone,
              role = EXCLUDED.role,
              updated_at = now()`,

@@ -36,8 +36,13 @@ export class ProfessionalsController {
   ) {}
 
   @Get()
-  search(@Query() query: Record<string, string>) {
-    return this.service.search(query);
+  search(
+    @Query() query: Record<string, string>,
+    @CurrentAccount() account: AccountContext,
+  ) {
+    // Exclude the authenticated user's own professional profile from results
+    // so a professional cannot see or hire themselves.
+    return this.service.search(query, account.profile.id);
   }
 
   @Get('me/dashboard')

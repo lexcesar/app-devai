@@ -8,5 +8,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
   imports: [ProfessionalsModule, NotificationsModule],
   controllers: [WorksController],
   providers: [WorksRepository],
+  exports: [WorksRepository],
 })
 export class WorksModule {}

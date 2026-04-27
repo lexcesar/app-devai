@@ -70,7 +70,9 @@ async function clientRequest<T>(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Erro desconhecido' })) as { error?: string };
-    throw new Error(err.error ?? `HTTP ${res.status}`);
+    const error = new Error(err.error ?? `HTTP ${res.status}`) as Error & { status: number };
+    error.status = res.status;
+    throw error;
   }
 
   const envelope = (await res.json()) as ClientApiEnvelope<T>;
@@ -82,6 +84,7 @@ export interface ClientApi {
   post: <T>(path: string, body: unknown, skipActingAs?: boolean) => Promise<T>;
   put: <T>(path: string, body: unknown) => Promise<T>;
   patch: <T>(path: string, body: unknown) => Promise<T>;
+  delete: <T>(path: string) => Promise<T>;
 }
 
 /**
@@ -105,5 +108,7 @@ export function useClientApi(): ClientApi {
       clientRequest<T>(getToken, path, { method: 'PUT', body: JSON.stringify(body) }),
     patch: <T>(path: string, body: unknown) =>
       clientRequest<T>(getToken, path, { method: 'PATCH', body: JSON.stringify(body) }),
+    delete: <T>(path: string) =>
+      clientRequest<T>(getToken, path, { method: 'DELETE' }),
   };
 }

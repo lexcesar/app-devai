@@ -14,6 +14,7 @@ describe('AccountController', () => {
     clerk_id: 'clerk-001',
     full_name: 'Jackson Miranda',
     avatar_url: null,
+    avatar_id: null,
     phone: null,
     role: 'client',
     created_at: new Date().toISOString(),
@@ -75,6 +76,7 @@ describe('AccountController', () => {
           rows: [{ bio: validBody.bio, full_name: mockProfile.full_name }],
         }) // SELECT bio + full_name
         .mockResolvedValueOnce({ rows: [] }) // UPDATE visibility_status
+        .mockResolvedValueOnce({ rows: [] }) // UPDATE profiles SET role = 'professional'
         .mockResolvedValueOnce({
           rows: [{ role: 'client' }, { role: 'professional' }],
         }); // SELECT roles
@@ -99,6 +101,7 @@ describe('AccountController', () => {
           rows: [{ bio: validBody.bio, full_name: mockProfile.full_name }],
         })
         .mockResolvedValueOnce({ rows: [] }) // UPDATE visibility_status
+        .mockResolvedValueOnce({ rows: [] }) // UPDATE profiles SET role = 'professional'
         .mockResolvedValueOnce({
           rows: [{ role: 'client' }, { role: 'professional' }],
         });
@@ -155,7 +158,8 @@ describe('AccountController', () => {
         .mockResolvedValueOnce({ rows: [{ is_primary: false }] }) // SELECT is_primary
         .mockResolvedValueOnce({ rows: [] }) // UPDATE account_roles is_active=false
         .mockResolvedValueOnce({ rows: [] }) // UPDATE professionals visibility_status='inactive'
-        .mockResolvedValueOnce({ rows: [{ role: 'client' }] }); // SELECT remaining roles
+        .mockResolvedValueOnce({ rows: [{ role: 'client' }] }) // SELECT remaining roles
+        .mockResolvedValueOnce({ rows: [] }); // UPDATE profiles SET role = fallback
 
       const result = await controller.deactivateRole(mockProfessionalAccount, {
         role: 'professional',
@@ -253,12 +257,13 @@ describe('AccountController', () => {
         .mockResolvedValueOnce({ rows: [{ is_primary: false }] }) // is_primary check
         .mockResolvedValueOnce({ rows: [] }) // set is_active=false
         .mockResolvedValueOnce({ rows: [] }) // set visibility_status=inactive
-        .mockResolvedValueOnce({ rows: [{ role: 'client' }] }); // remaining roles
+        .mockResolvedValueOnce({ rows: [{ role: 'client' }] }) // remaining roles
+        .mockResolvedValueOnce({ rows: [] }); // UPDATE profiles SET role = fallback
 
       await controller.deactivateRole(mockProfessionalAccount, {
         role: 'professional',
       });
-      expect(db.query).toHaveBeenCalledTimes(4);
+      expect(db.query).toHaveBeenCalledTimes(5);
 
       (db.query as jest.Mock).mockClear();
 
@@ -271,6 +276,7 @@ describe('AccountController', () => {
           rows: [{ bio, full_name: mockProfile.full_name }],
         })
         .mockResolvedValueOnce({ rows: [] }) // update visibility_status
+        .mockResolvedValueOnce({ rows: [] }) // UPDATE profiles SET role = 'professional'
         .mockResolvedValueOnce({
           rows: [{ role: 'client' }, { role: 'professional' }],
         });

@@ -112,7 +112,19 @@ export type SetAvailabilityInput = z.infer<typeof SetAvailabilitySchema>;
 export const BookVisitSchema = z.object({
   professionalId: uuidLike,
   scheduledAt: z.string().datetime(),
-  address: z.string().min(1).optional(),
+  // Structured address (required for new bookings)
+  street: z.string().min(1, 'Rua obrigatória').max(200),
+  streetNumber: z.string().min(1, 'Número obrigatório').max(20),
+  complement: z.string().max(100).optional(),
+  neighborhood: z.string().min(1, 'Bairro obrigatório').max(100),
+  cityName: z.string().min(1, 'Cidade obrigatória').max(100),
+  stateCode: z.string().length(2, 'Estado deve ter 2 caracteres').toUpperCase(),
+  // Booking metadata
+  requesterName: z.string().min(1, 'Nome do solicitante obrigatório').max(100),
+  serviceType: z.string().min(1, 'Tipo de serviço obrigatório').max(100),
+  description: z.string().min(10, 'Descreva o problema (mín. 10 caracteres)').max(1000),
+  // Deprecated — kept for backward compatibility
+  address: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -123,3 +135,22 @@ export const RejectVisitSchema = z.object({
 });
 
 export type RejectVisitInput = z.infer<typeof RejectVisitSchema>;
+
+// ── Profile ─────────────────────────────────────────────────────────────────
+
+export const UpdateProfileSchema = z.object({
+  full_name: z.string().min(1, 'Nome obrigatório').max(100).optional(),
+  phone: z.string().max(20).optional(),
+  avatar_id: z.string().max(100).nullable().optional(),
+});
+
+export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
+
+// ── Reviews ──────────────────────────────────────────────────────────────────
+
+export const CreateReviewSchema = z.object({
+  rating: z.number().int().min(1, 'Selecione uma nota para continuar.').max(5),
+  comment: z.string().max(1000, 'Comentário muito longo (máx. 1000 caracteres)').optional(),
+});
+
+export type CreateReviewInput = z.infer<typeof CreateReviewSchema>;

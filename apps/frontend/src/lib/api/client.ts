@@ -22,7 +22,7 @@ export type ApiError = {
   code?: string;
 };
 
-async function getAuthHeaders(): Promise<Record<string, string>> {
+async function getAuthHeaders(actingAsOverride?: string): Promise<Record<string, string>> {
   const { getToken } = await auth();
   const token = await getToken();
   const headers: Record<string, string> = token
@@ -32,18 +32,20 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
     headers[DEV_USER_ID_HEADER] = BYPASS_USER_CLERK_ID;
   }
   // Inject the acting-as role header.
-  // On the client, read from document.cookie; on the server, read from next/headers.
-  let actingAs: string | null | undefined = null;
-  if (typeof window === 'undefined') {
-    try {
-      const { cookies } = await import('next/headers');
-      const cookieStore = await cookies();
-      actingAs = cookieStore.get(ACTING_AS_COOKIE)?.value ?? null;
-    } catch {
-      // Outside a request context (e.g. static generation) — skip header
+  // actingAsOverride takes priority; then cookie; then nothing.
+  let actingAs: string | null | undefined = actingAsOverride ?? null;
+  if (!actingAs) {
+    if (typeof window === 'undefined') {
+      try {
+        const { cookies } = await import('next/headers');
+        const cookieStore = await cookies();
+        actingAs = cookieStore.get(ACTING_AS_COOKIE)?.value ?? null;
+      } catch {
+        // Outside a request context (e.g. static generation) — skip header
+      }
+    } else {
+      actingAs = getActingAs();
     }
-  } else {
-    actingAs = getActingAs();
   }
   if (actingAs) {
     headers[ACTING_AS_HEADER] = actingAs;
@@ -51,11 +53,14 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   return headers;
 }
 
+export type RequestOverrides = { actingAs?: string };
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
+  overrides?: RequestOverrides,
 ): Promise<T> {
-  const authHeaders = await getAuthHeaders();
+  const authHeaders = await getAuthHeaders(overrides?.actingAs);
   const url = `${API_URL}${path}`;
 
   // Auth headers are applied AFTER caller-supplied options.headers so a caller
@@ -80,12 +85,12 @@ async function request<T>(
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
-  put: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
-  patch: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
-  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  get: <T>(path: string, overrides?: RequestOverrides) => request<T>(path, {}, overrides),
+  post: <T>(path: string, body: unknown, overrides?: RequestOverrides) =>
+    request<T>(path, { method: 'POST', body: JSON.stringify(body) }, overrides),
+  put: <T>(path: string, body: unknown, overrides?: RequestOverrides) =>
+    request<T>(path, { method: 'PUT', body: JSON.stringify(body) }, overrides),
+  patch: <T>(path: string, body: unknown, overrides?: RequestOverrides) =>
+    request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }, overrides),
+  delete: <T>(path: string, overrides?: RequestOverrides) => request<T>(path, { method: 'DELETE' }, overrides),
 };

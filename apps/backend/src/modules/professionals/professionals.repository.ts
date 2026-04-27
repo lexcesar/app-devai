@@ -11,7 +11,7 @@ const COLS = `
   p.rating_avg, p.jobs_completed,
   p.is_verified, p.latitude, p.longitude, p.created_at,
   p.visibility_status, p.display_name, p.city, p.published_at,
-  pr.id AS pr_id, pr.clerk_id, pr.full_name, pr.avatar_url,
+  pr.id AS pr_id, pr.clerk_id, pr.full_name, pr.avatar_url, pr.avatar_id,
   pr.phone, pr.role, pr.created_at AS pr_created_at, pr.updated_at AS pr_updated_at
 `;
 
@@ -37,6 +37,7 @@ function mapRow(row: Record<string, unknown>): ProfessionalWithProfile {
       clerk_id: row.clerk_id as string,
       full_name: row.full_name as string,
       avatar_url: (row.avatar_url as string | null) ?? null,
+      avatar_id: (row.avatar_id as string | null) ?? null,
       phone: (row.phone as string | null) ?? null,
       role: row.role as 'client' | 'professional' | 'store',
       created_at: String(row.pr_created_at),
@@ -57,25 +58,38 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
     city: _city,
     limit = 20,
     offset = 0,
+    excludeProfileId,
   }: {
     query?: string;
     service?: string;
     city?: string;
     limit?: number;
     offset?: number;
+    /** Profile ID to exclude from results (prevents self-hire) */
+    excludeProfileId?: string;
   }): Promise<ProfessionalWithProfile[]> {
-    // Mapeamento de termos amigáveis (UI) para raízes comuns em 'specialty' ou 'bio'
-    let mappedService = service;
-    if (service) {
-      const s = service.toLowerCase();
-      if (s.includes('elétric')) mappedService = 'eletric';
-      else if (s.includes('hidráulica') || s.includes('encanador'))
-        mappedService = 'encanad';
-      else if (s.includes('pintura')) mappedService = 'pintor';
-      else if (s.includes('diarista')) mappedService = 'diarista';
-      else if (s.includes('pedreiro')) mappedService = 'pedreir';
-      else if (s.includes('marceneiro')) mappedService = 'marceneir';
-    }
+    const normalizeAndMapTerm = (term?: string): string | null => {
+      if (!term) return null;
+      const s = term
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+      if (s.includes('eletric')) return 'eletric';
+      if (s.includes('hidraul') || s.includes('encanador')) return 'encanad';
+      if (s.includes('pintur') || s.includes('pintor')) return 'pint';
+      if (s.includes('diarista') || s.includes('limpez')) return 'diarista';
+      if (s.includes('pedreiro') || s.includes('reform')) return 'pedreir';
+      if (s.includes('marceneir') || s.includes('moveis')) return 'marceneir';
+
+      return term;
+    };
+
+    const queryTerm = normalizeAndMapTerm(query);
+    const serviceTerm = normalizeAndMapTerm(service);
+    // Raw (non-normalized) service name for direct match against specialties
+    // stored as the literal service category (e.g. "Instalações Hidráulicas").
+    const serviceRaw = service ?? null;
 
     const { rows } = await this.db.query(
       `SELECT ${COLS}
@@ -86,11 +100,24 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
          AND ar.role = 'professional'
          AND ar.is_active = true
        WHERE p.visibility_status = 'active'
+         AND EXISTS (
+           SELECT 1 FROM availability_slots av
+           WHERE av.professional_id = p.id
+         )
          AND ($1::text IS NULL OR pr.full_name ILIKE '%' || $1 || '%' OR p.bio ILIKE '%' || $1 || '%' OR p.specialty ILIKE '%' || $1 || '%')
-         AND ($2::text IS NULL OR p.specialty ILIKE '%' || $2 || '%' OR p.bio ILIKE '%' || $2 || '%')
+         AND ($2::text IS NULL OR p.specialty ILIKE '%' || $2 || '%' OR p.bio ILIKE '%' || $2 || '%'
+              OR ($6::text IS NOT NULL AND p.specialty ILIKE '%' || $6 || '%'))
+         AND ($5::uuid IS NULL OR p.profile_id != $5)
        ORDER BY p.rating_avg DESC, p.published_at DESC
        LIMIT $3 OFFSET $4`,
-      [query ?? null, mappedService ?? null, limit, offset],
+      [
+        queryTerm,
+        serviceTerm,
+        limit ?? 10,
+        offset ?? 0,
+        excludeProfileId ?? null,
+        serviceRaw,
+      ],
     );
     return rows.map(mapRow);
   }
@@ -118,7 +145,7 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
               json_build_object(
                 'id', rv.id, 'rating', rv.rating, 'comment', rv.comment,
                 'created_at', rv.created_at,
-                'profiles', json_build_object('id', rp.id, 'full_name', rp.full_name, 'avatar_url', rp.avatar_url)
+                'profiles', json_build_object('id', rp.id, 'full_name', rp.full_name, 'avatar_url', rp.avatar_url, 'avatar_id', rp.avatar_id)
               ) ORDER BY rv.created_at DESC
             ) FILTER (WHERE rv.id IS NOT NULL),
             '[]'
@@ -131,7 +158,7 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
         GROUP BY p.id, p.profile_id, p.specialty, p.bio,
                  p.rating_avg, p.jobs_completed, p.is_verified,
                  p.latitude, p.longitude, p.created_at,
-                 pr.id, pr.clerk_id, pr.full_name, pr.avatar_url,
+                 pr.id, pr.clerk_id, pr.full_name, pr.avatar_url, pr.avatar_id,
                  pr.phone, pr.role, pr.created_at, pr.updated_at`,
       [id],
     );

@@ -7,6 +7,7 @@ import { api } from '@/lib/api/client';
 import { StarRating } from '@/components/ui/StarRating';
 import { StickyBottomCTA } from '@/components/ui/StickyBottomCTA';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Avatar } from '@/components/ui/Avatar';
 import Link from 'next/link';
 
 import { ShareButton, ReviewsSection } from './ProfissionalClient';
@@ -44,18 +45,12 @@ export default async function ProfissionalPage({
           {/* ── Centered circular photo ─────────────────────────── */}
           <div className="flex flex-col items-center pt-6 pb-4 bg-white md:rounded-2xl md:border md:border-slate-100 md:shadow-sm">
             <div className="w-28 h-28 rounded-full bg-slate-200 overflow-hidden border-4 border-white shadow-lg">
-              {profile?.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={profile.avatar_url}
-                  alt={profile.full_name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <span className="material-symbols-outlined text-5xl text-slate-300">person</span>
-                </div>
-              )}
+              <Avatar
+                avatarId={profile?.avatar_id}
+                src={profile?.avatar_url}
+                name={profile?.full_name ?? 'Profissional'}
+                size="xl"
+              />
             </div>
 
             <h1 className="text-xl font-bold text-slate-900 mt-3 text-center">{profile?.full_name}</h1>
@@ -129,13 +124,6 @@ export default async function ProfissionalPage({
                 <span className="material-symbols-outlined text-lg">calendar_month</span>
                 Agendar Visita
               </Link>
-              <Link
-                href={`/agendar/${id}`}
-                className="w-full h-12 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm transition-all hover:scale-[0.98] bg-trust hover:bg-blue-800 text-white"
-              >
-                <span className="material-symbols-outlined text-lg">request_quote</span>
-                Solicitar Orçamento
-              </Link>
             </div>
             <div className="mt-5 pt-5 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-500">
               <span className="material-symbols-outlined text-base text-emerald-500">shield</span>
@@ -148,22 +136,13 @@ export default async function ProfissionalPage({
       {/* ── CTA fixado no rodapé — mobile only ───────────────────── */}
       <div className="md:hidden">
         <StickyBottomCTA>
-          <div className="flex flex-col gap-2 w-full">
-            <Link
-              href={`/agendar/${id}`}
-              className="w-full h-14 rounded-xl flex items-center justify-center gap-2 font-semibold text-base transition-all active:scale-[0.98] bg-savings hover:bg-emerald-600 text-white"
-            >
-              <span className="material-symbols-outlined text-xl">calendar_month</span>
-              Agendar Visita
-            </Link>
-            <Link
-              href={`/agendar/${id}`}
-              className="w-full h-14 rounded-xl flex items-center justify-center gap-2 font-semibold text-base transition-all active:scale-[0.98] bg-trust hover:bg-blue-800 text-white"
-            >
-              <span className="material-symbols-outlined text-xl">request_quote</span>
-              Solicitar Orçamento
-            </Link>
-          </div>
+          <Link
+            href={`/agendar/${id}`}
+            className="w-full h-14 rounded-xl flex items-center justify-center gap-2 font-semibold text-base transition-all active:scale-[0.98] bg-savings hover:bg-emerald-600 text-white"
+          >
+            <span className="material-symbols-outlined text-xl">calendar_month</span>
+            Agendar Visita
+          </Link>
         </StickyBottomCTA>
       </div>
     </div>

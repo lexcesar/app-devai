@@ -8,24 +8,18 @@
 import Link from 'next/link';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { NotificationBell } from '@/components/ui/NotificationBell';
+import { Avatar } from '@/components/ui/Avatar';
 
 interface TopBarProps {
   /** Display name of the authenticated user (passed from server component) */
   userName?: string;
-  /** Avatar URL (optional) */
+  /** ID do avatar preset selecionado (profiles.avatar_id). */
+  avatarId?: string;
+  /** Avatar URL legada (profiles.avatar_url / Clerk). Fallback. */
   avatarUrl?: string;
 }
 
-export function TopBar({ userName, avatarUrl }: TopBarProps) {
-  const initials = userName
-    ? userName
-        .split(' ')
-        .slice(0, 2)
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-    : 'U';
-
+export function TopBar({ userName, avatarId, avatarUrl }: TopBarProps) {
   return (
     <header className="hidden md:flex fixed top-0 left-64 right-0 z-20 h-14 items-center gap-4 bg-surface-container-lowest border-b border-outline-variant/15 px-6 shadow-[0_2px_16px_rgba(0,40,142,0.04)]">
       {/* Search */}
@@ -44,18 +38,12 @@ export function TopBar({ userName, avatarUrl }: TopBarProps) {
           className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl hover:bg-surface-container-low transition-colors"
           aria-label="Meu perfil"
         >
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={avatarUrl}
-              alt={userName ?? 'Avatar'}
-              className="w-7 h-7 rounded-full object-cover"
-            />
-          ) : (
-            <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-              <span className="text-[10px] font-bold text-white">{initials}</span>
-            </div>
-          )}
+          <Avatar
+            avatarId={avatarId}
+            src={avatarUrl}
+            name={userName ?? 'U'}
+            size="xs"
+          />
           {userName && (
             <span className="text-sm font-medium text-on-surface hidden lg:inline">
               {userName}

@@ -18,6 +18,7 @@ describe('MaterialListsController', () => {
     clerk_id: 'clerk-1',
     full_name: 'Alex',
     avatar_url: null,
+    avatar_id: null,
     phone: null,
     role: 'professional',
     created_at: new Date().toISOString(),

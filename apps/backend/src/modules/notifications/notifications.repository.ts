@@ -12,12 +12,34 @@ export class NotificationsRepository {
     title: string;
     message: string;
     link?: string | null;
+    metadata?: Record<string, unknown> | null;
   }): Promise<void> {
-    await this.db.query(
-      `INSERT INTO notifications (profile_id, type, title, message, link)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [data.profileId, data.type, data.title, data.message, data.link ?? null],
-    );
+    if (data.metadata != null) {
+      await this.db.query(
+        `INSERT INTO notifications (profile_id, type, title, message, link, metadata)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          data.profileId,
+          data.type,
+          data.title,
+          data.message,
+          data.link ?? null,
+          JSON.stringify(data.metadata),
+        ],
+      );
+    } else {
+      await this.db.query(
+        `INSERT INTO notifications (profile_id, type, title, message, link)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          data.profileId,
+          data.type,
+          data.title,
+          data.message,
+          data.link ?? null,
+        ],
+      );
+    }
   }
 
   async findByProfile(profileId: string, limit = 20): Promise<Notification[]> {

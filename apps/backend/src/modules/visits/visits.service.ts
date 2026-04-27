@@ -6,7 +6,9 @@ import {
 } from '@nestjs/common';
 import { OwnershipService } from '../../core/authorization/ownership.service';
 import { AvailabilityRepository, VisitsRepository } from './visits.repository';
+import { WorksRepository } from '../works/works.repository';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ProfessionalsRepository } from '../professionals/professionals.repository';
 import {
   SetAvailabilitySchema,
   BookVisitSchema,
@@ -27,6 +29,8 @@ export class VisitsService {
     private readonly visitsRepo: VisitsRepository,
     private readonly ownershipService: OwnershipService,
     private readonly notificationsService: NotificationsService,
+    private readonly worksRepo: WorksRepository,
+    private readonly professionalsRepo: ProfessionalsRepository,
   ) {}
 
   // ── Availability ──────────────────────────────────────────────────────────
@@ -143,13 +147,38 @@ export class VisitsService {
     return visit;
   }
 
-  async book(clientId: string, rawInput: unknown): Promise<Visit> {
+  async book(clientProfile: Profile, rawInput: unknown): Promise<Visit> {
     const input = BookVisitSchema.parse(rawInput);
+
+    // Prevent self-hire: check if the professional belongs to the booking client
+    const pro = await this.professionalsRepo.findById(input.professionalId);
+    if (!pro) {
+      throw new NotFoundException('Profissional não encontrado');
+    }
+    if (pro.profile_id === clientProfile.id) {
+      throw new ForbiddenException(
+        'Você não pode contratar o seu próprio serviço.',
+      );
+    }
+
+    let visit: Visit;
     try {
-      return await this.visitsRepo.create({
-        clientId,
+      visit = await this.visitsRepo.create({
+        clientId: clientProfile.id,
         professionalId: input.professionalId,
         scheduledAt: input.scheduledAt,
+        // Structured address
+        street: input.street,
+        streetNumber: input.streetNumber,
+        complement: input.complement,
+        neighborhood: input.neighborhood,
+        cityName: input.cityName,
+        stateCode: input.stateCode,
+        // Booking metadata
+        requesterName: input.requesterName,
+        serviceType: input.serviceType,
+        description: input.description,
+        // Legacy fallback
         address: input.address,
         notes: input.notes,
       });
@@ -164,9 +193,48 @@ export class VisitsService {
       }
       throw err;
     }
+
+    // Notify the professional about the new visit request (fire-and-forget)
+    this.professionalsRepo
+      .findById(input.professionalId)
+      .then((pro) => {
+        if (!pro) return;
+        const scheduledDate = new Date(input.scheduledAt);
+        const formattedDate = scheduledDate.toLocaleString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'America/Sao_Paulo',
+        });
+        return this.notificationsService.notify({
+          profileId: pro.profile_id,
+          type: 'visit_requested',
+          title: 'Nova solicitação de visita',
+          message: `${clientProfile.full_name} solicitou uma visita técnica para ${formattedDate}.`,
+          link: '/agenda',
+          metadata: {
+            visitId: visit.id,
+            clientId: clientProfile.id,
+            clientName: clientProfile.full_name,
+            specialty: pro.specialty,
+            scheduledAt: input.scheduledAt,
+            address: input.address ?? null,
+          },
+        });
+      })
+      .catch((err: unknown) => {
+        console.error(
+          '[VisitsService] Failed to notify professional on book:',
+          err,
+        );
+      });
+
+    return visit;
   }
 
-  async cancel(id: string, profile: Profile): Promise<Visit> {
+  async cancel(id: string, profile: Profile, reason?: string): Promise<Visit> {
     const visit = await this.visitsRepo.findById(id);
     if (!visit) throw new NotFoundException('Visita não encontrada');
     if (!['pending', 'confirmed'].includes(visit.status)) {
@@ -178,7 +246,10 @@ export class VisitsService {
       id,
       'cancelled',
       profile.id,
+      reason,
     );
+    // Cancel associated work (only if still scheduled)
+    await this.worksRepo.cancelByVisitId(id);
     // Notify the other party
     const visitFull = visit as unknown as VisitFull;
     const professionalProfileId = visitFull.professionals?.profile_id;
@@ -239,6 +310,15 @@ export class VisitsService {
       );
     }
     const result = await this.visitsRepo.updateStatus(id, 'confirmed');
+
+    // Idempotently create the work linked to this visit
+    await this.worksRepo.createFromVisit({
+      id: visit.id,
+      client_id: visit.client_id,
+      professional_id: visit.professional_id,
+      address: (visit as unknown as { address?: string | null }).address,
+    });
+
     await this.notificationsService.notify({
       profileId: visit.client_id,
       type: 'visit_accepted',
@@ -272,6 +352,8 @@ export class VisitsService {
       undefined,
       reason,
     );
+    // Cancel associated work (only if still scheduled — defensive)
+    await this.worksRepo.cancelByVisitId(id);
     await this.notificationsService.notify({
       profileId: visit.client_id,
       type: 'visit_rejected',

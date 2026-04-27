@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAuthBypassEnabled, BYPASS_USER_CLERK_ID } from '@/lib/auth-bypass-config';
-import { DEV_USER_ID_HEADER, ACTING_AS_HEADER } from '@obrafacil/shared';
-import { getActingAs } from '@/lib/acting-as';
+import { useClientApi } from '@/lib/api/client-api';
 
 interface WorkActionsProps {
   workId: string;
@@ -19,34 +17,17 @@ export function WorkActions({ workId, status, progressPct }: WorkActionsProps) {
   const [progress, setProgress] = useState(progressPct);
   const [editingProgress, setEditingProgress] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
-
-  const buildHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (isAuthBypassEnabled) headers[DEV_USER_ID_HEADER] = BYPASS_USER_CLERK_ID;
-    const actingAs = getActingAs();
-    if (actingAs) headers[ACTING_AS_HEADER] = actingAs;
-    return headers;
-  };
+  const api = useClientApi();
 
   const patch = async (path: string, body?: Record<string, unknown>) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${apiUrl}/v1/works/${workId}/${path}`, {
-        method: 'PATCH',
-        headers: buildHeaders(),
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({})) as { error?: string };
-        setError(data.error ?? 'Erro ao atualizar obra');
-        return false;
-      }
+      await api.patch(`/v1/works/${workId}/${path}`, body ?? {});
       router.refresh();
       return true;
-    } catch {
-      setError('Erro de conexão');
+    } catch (err: unknown) {
+      setError((err as Error).message ?? 'Erro ao atualizar obra');
       return false;
     } finally {
       setLoading(false);

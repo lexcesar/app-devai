@@ -22,6 +22,7 @@ describe('ProfessionalsController', () => {
     clerk_id: 'clerk-001',
     full_name: 'Jackson Miranda',
     avatar_url: null,
+    avatar_id: null,
     phone: null,
     role: 'professional',
     created_at: new Date().toISOString(),
@@ -216,21 +217,21 @@ describe('ProfessionalsController', () => {
       };
       service.search.mockResolvedValue(activeResult);
 
-      const result = await controller.search({});
+      const result = await controller.search({}, mockAccount);
 
       expect(result).toEqual(activeResult);
-      expect(service.search).toHaveBeenCalledWith({});
+      expect(service.search).toHaveBeenCalledWith({}, mockProfile.id);
     });
 
     it('passes query params to the service', async () => {
       service.search.mockResolvedValue({ professionals: [], total: 0 });
 
-      await controller.search({ q: 'Marceneiro', limit: '10' });
+      await controller.search({ q: 'Marceneiro', limit: '10' }, mockAccount);
 
-      expect(service.search).toHaveBeenCalledWith({
-        q: 'Marceneiro',
-        limit: '10',
-      });
+      expect(service.search).toHaveBeenCalledWith(
+        { q: 'Marceneiro', limit: '10' },
+        mockProfile.id,
+      );
     });
   });
 });

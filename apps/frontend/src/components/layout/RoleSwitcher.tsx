@@ -2,16 +2,9 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ACTING_AS_HEADER, DEV_USER_ID_HEADER } from '@obrafacil/shared';
-import { getActingAs } from '@/lib/acting-as';
-import { isAuthBypassEnabled, BYPASS_USER_CLERK_ID } from '@/lib/auth-bypass-config';
 import type { AccountContext, UserRole } from '@obrafacil/shared';
 import { useRole } from '@/contexts/RoleContext';
-
-const API_URL =
-  typeof window !== 'undefined'
-    ? (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api')
-    : '';
+import { useClientApi } from '@/lib/api/client-api';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   client: 'Cliente',
@@ -25,36 +18,20 @@ const ROLE_ICONS: Record<UserRole, string> = {
   store: 'storefront',
 };
 
-async function fetchAccountMe(): Promise<AccountContext | null> {
-  try {
-    const actingAs = getActingAs();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (actingAs) headers[ACTING_AS_HEADER] = actingAs;
-    if (isAuthBypassEnabled) headers[DEV_USER_ID_HEADER] = BYPASS_USER_CLERK_ID;
-    const res = await fetch(`${API_URL}/v1/account/me`, {
-      headers,
-      cache: 'no-store',
-      credentials: 'include',
-    });
-    if (!res.ok) return null;
-    const envelope = (await res.json()) as { data: AccountContext };
-    return envelope.data;
-  } catch {
-    return null;
-  }
-}
+
 
 export function RoleSwitcher() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [roles, setRoles] = useState<UserRole[]>([]);
   const { actingAs, setRole } = useRole();
+  const clientApi = useClientApi();
 
   useEffect(() => {
-    fetchAccountMe().then((account) => {
-      if (!account) return;
-      setRoles(account.roles);
-    });
+    clientApi.get<AccountContext>('/v1/account/me')
+      .then((account) => setRoles(account.roles))
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (roles.length <= 1) return null;

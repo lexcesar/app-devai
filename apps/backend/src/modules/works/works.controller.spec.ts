@@ -28,6 +28,7 @@ describe('WorksController', () => {
     clerk_id: 'clerk-id',
     full_name: 'Test User',
     avatar_url: null,
+    avatar_id: null,
     phone: null,
     role: 'client',
     created_at: new Date().toISOString(),

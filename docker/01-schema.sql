@@ -16,7 +16,7 @@ create type user_role as enum ('client', 'professional', 'store');
 create type message_type as enum ('text', 'image', 'audio', 'material_list');
 create type material_list_status as enum ('draft', 'sent', 'quoted');
 create type order_status as enum ('pending', 'confirmed', 'shipped', 'delivered');
-create type work_status as enum ('scheduled', 'active', 'completed');
+create type work_status as enum ('scheduled', 'active', 'completed', 'cancelled');
 
 -- ============================================================
 -- TABLES
@@ -56,12 +56,13 @@ create table services (
 
 create table reviews (
   id              uuid primary key default uuid_generate_v4(),
+  work_id         uuid references works(id) on delete cascade,
   professional_id uuid not null references professionals(id) on delete cascade,
   reviewer_id     uuid not null references profiles(id) on delete cascade,
   rating          smallint not null check (rating between 1 and 5),
   comment         text,
   created_at      timestamptz not null default now(),
-  unique (professional_id, reviewer_id)
+  unique (work_id, reviewer_id)
 );
 
 create table conversations (
@@ -142,6 +143,7 @@ create table works (
   id              uuid primary key default uuid_generate_v4(),
   client_id       uuid not null references profiles(id) on delete cascade,
   professional_id uuid not null references professionals(id) on delete restrict,
+  visit_id        uuid,
   title           text not null,
   status          work_status not null default 'scheduled',
   progress_pct    smallint not null default 0 check (progress_pct between 0 and 100),
@@ -171,17 +173,27 @@ create table availability_slots (
 );
 
 create table visits (
-  id              uuid primary key default uuid_generate_v4(),
-  client_id       uuid not null references profiles(id) on delete cascade,
-  professional_id uuid not null references professionals(id) on delete cascade,
-  scheduled_at    timestamptz not null,
-  status          visit_status not null default 'pending',
-  address         text,
-  notes           text,
-  cancelled_by    uuid references profiles(id),
-  created_at      timestamptz not null default now(),
-  updated_at      timestamptz not null default now()
+  id               uuid primary key default uuid_generate_v4(),
+  client_id        uuid not null references profiles(id) on delete cascade,
+  professional_id  uuid not null references professionals(id) on delete cascade,
+  scheduled_at     timestamptz not null,
+  status           visit_status not null default 'pending',
+  address          text,
+  notes            text,
+  rejection_reason text,
+  cancelled_by     uuid references profiles(id),
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
 );
+
+-- retroactively add the FK and unique index for works.visit_id now that visits exists
+alter table works
+  add constraint works_visit_id_fkey foreign key (visit_id)
+    references visits(id) on delete set null;
+
+create unique index if not exists works_visit_id_unique
+  on works (visit_id) where visit_id is not null;
+create index if not exists idx_works_visit_id on works (visit_id);
 
 -- ============================================================
 -- INDEXES
@@ -190,6 +202,7 @@ create table visits (
 create index idx_professionals_rating on professionals(rating_avg desc);
 create index idx_professionals_location on professionals(latitude, longitude);
 create index idx_reviews_professional_id on reviews(professional_id);
+create index idx_reviews_work_id on reviews(work_id);
 create index idx_messages_conversation_id on messages(conversation_id, created_at);
 create index idx_conversations_client_id on conversations(client_id);
 create index idx_conversations_professional_id on conversations(professional_id);

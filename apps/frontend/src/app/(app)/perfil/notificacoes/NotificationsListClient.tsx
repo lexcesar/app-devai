@@ -17,6 +17,7 @@ function timeAgo(iso: string): string {
 }
 
 const TYPE_ICON: Record<string, string> = {
+  visit_requested: 'pending_actions',
   visit_accepted: 'event_available',
   visit_rejected: 'event_busy',
   visit_cancelled: 'event_busy',

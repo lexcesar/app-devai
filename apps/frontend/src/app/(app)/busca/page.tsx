@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { api } from '@/lib/api/client';
 import { StarRating } from '@/components/ui/StarRating';
 import { SearchBar } from '@/components/ui/SearchBar';
+import { Avatar } from '@/components/ui/Avatar';
 import Link from 'next/link';
 
 export default async function BuscaPage({
@@ -60,16 +61,13 @@ export default async function BuscaPage({
               className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden p-4"
             >
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-full bg-slate-100 overflow-hidden flex-shrink-0">
-                  {p.profiles?.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.profiles.avatar_url} alt={p.profiles.full_name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="material-symbols-outlined text-2xl text-slate-300">person</span>
-                    </div>
-                  )}
-                </div>
+                <Avatar
+                  avatarId={p.profiles?.avatar_id}
+                  src={p.profiles?.avatar_url}
+                  name={p.profiles?.full_name ?? 'Profissional'}
+                  size="lg"
+                  className="flex-shrink-0"
+                />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-slate-900 truncate">
                     {p.profiles?.full_name ?? 'Profissional'}

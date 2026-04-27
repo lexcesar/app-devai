@@ -7,8 +7,11 @@ export default async function SolicitacoesPage() {
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');
 
+  // Force actingAs=client: this page always shows visits the user booked as a client.
+  // Without this, users who have the professional role activated would get professional
+  // visits (empty) instead of their own bookings.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const visitsList = await api.get<any[]>('/v1/visits').catch(() => []);
+  const visitsList = await api.get<any[]>('/v1/visits', { actingAs: 'client' }).catch(() => []);
 
   return (
     <div className="pb-24 bg-surface min-h-screen">

@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAuthBypassEnabled, BYPASS_USER_CLERK_ID } from '@/lib/auth-bypass-config';
-import { DEV_USER_ID_HEADER, ACTING_AS_HEADER } from '@obrafacil/shared';
-import { getActingAs } from '@/lib/acting-as';
+import { useClientApi } from '@/lib/api/client-api';
 
 interface OportunidadeActionsProps {
   visitId: string;
@@ -15,30 +13,16 @@ export function OportunidadeActions({ visitId }: OportunidadeActionsProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
+  const api = useClientApi();
 
   const handleAction = async (action: 'accept' | 'reject') => {
     setLoading(true);
     setError(null);
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (isAuthBypassEnabled) headers[DEV_USER_ID_HEADER] = BYPASS_USER_CLERK_ID;
-      const actingAs = getActingAs();
-      if (actingAs) headers[ACTING_AS_HEADER] = actingAs;
-
-      const res = await fetch(`${apiUrl}/v1/visits/${visitId}/${action}`, {
-        method: 'PATCH',
-        headers,
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as { error?: string };
-        setError(body.error ?? 'Erro ao atualizar solicitação');
-        return;
-      }
+      await api.patch(`/v1/visits/${visitId}/${action}`, {});
       router.refresh();
-    } catch {
-      setError('Erro de conexão');
+    } catch (err: unknown) {
+      setError((err as Error).message ?? 'Erro ao atualizar solicitação');
     } finally {
       setLoading(false);
     }

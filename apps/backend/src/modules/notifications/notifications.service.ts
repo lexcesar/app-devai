@@ -12,6 +12,7 @@ export class NotificationsService {
     title: string;
     message: string;
     link?: string | null;
+    metadata?: Record<string, unknown> | null;
   }): Promise<void> {
     await this.repo.create(data);
   }

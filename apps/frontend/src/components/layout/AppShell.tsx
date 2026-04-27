@@ -16,10 +16,11 @@ const VALID_ROLES: UserRole[] = ['client', 'professional', 'store'];
 interface AppShellProps {
   children: React.ReactNode;
   userName?: string;
+  avatarId?: string;
   avatarUrl?: string;
 }
 
-export async function AppShell({ children, userName, avatarUrl }: AppShellProps) {
+export async function AppShell({ children, userName, avatarId, avatarUrl }: AppShellProps) {
   const cookieStore = await cookies();
   const raw = cookieStore.get(ACTING_AS_COOKIE)?.value as UserRole | undefined;
   const actingAs: UserRole = raw && VALID_ROLES.includes(raw) ? raw : 'client';
@@ -27,9 +28,9 @@ export async function AppShell({ children, userName, avatarUrl }: AppShellProps)
   return (
     <RoleProvider initialRole={actingAs}>
       <div className="min-h-screen bg-surface">
-        {/* ── Desktop layout (md+) ─────────────────────────────────── */}
+        {/* ── Desktop layout (md+) ──────────────────────────────────── */}
         <SideNav />
-        <TopBar userName={userName} avatarUrl={avatarUrl} />
+        <TopBar userName={userName} avatarId={avatarId} avatarUrl={avatarUrl} />
 
         {/* ── Mobile top bar (hidden md+) ───────────────────────── */}
         <MobileTopBar />

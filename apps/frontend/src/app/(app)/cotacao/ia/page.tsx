@@ -2,14 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { DEV_USER_ID_HEADER } from '@obrafacil/shared';
-import {
-  BYPASS_USER_CLERK_ID,
-  isAuthBypassEnabled,
-} from '@/lib/auth-bypass-config';
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333/api';
+import { useClientApi } from '@/lib/api/client-api';
 
 type MaterialItem = {
   name: string;
@@ -30,31 +23,17 @@ export default function CotacaoIaPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quote, setQuote] = useState<Quote | null>(null);
+  const api = useClientApi();
 
   async function handleGenerate() {
     setLoading(true);
     setError(null);
     setQuote(null);
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (isAuthBypassEnabled) {
-        headers[DEV_USER_ID_HEADER] = BYPASS_USER_CLERK_ID;
-      }
-      const res = await fetch(`${API_URL}/v1/ai/material-quote`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ description }),
-      });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? `HTTP ${res.status}`);
-      }
-      const envelope = (await res.json()) as { data: Quote };
-      setQuote(envelope.data);
+      const result = await api.post<Quote>('/v1/ai/material-quote', { description });
+      setQuote(result);
     } catch (err) {
-      setError((err as Error).message ?? 'Erro ao gerar cotação');
+      setError(err instanceof Error ? err.message : 'Erro ao gerar cotação');
     } finally {
       setLoading(false);
     }

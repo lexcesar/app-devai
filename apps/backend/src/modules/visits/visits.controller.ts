@@ -83,15 +83,19 @@ export class VisitsController {
 
   @Post('visits')
   book(@CurrentAccount() account: AccountContext, @Body() body: unknown) {
-    if (account.actingAs !== 'client') {
+    if (!account.roles.includes('client')) {
       throw new ForbiddenException('Apenas clientes podem agendar visitas');
     }
-    return this.service.book(account.profile.id, body);
+    return this.service.book(account.profile, body);
   }
 
   @Patch('visits/:id/cancel')
-  cancel(@Param('id') id: string, @CurrentAccount() account: AccountContext) {
-    return this.service.cancel(id, account.profile);
+  cancel(
+    @Param('id') id: string,
+    @CurrentAccount() account: AccountContext,
+    @Body() body: { reason?: string },
+  ) {
+    return this.service.cancel(id, account.profile, body?.reason);
   }
 
   @Patch('visits/:id/complete')

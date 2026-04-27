@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useClientApi } from '@/lib/api/client-api';
+import { useRole } from '@/contexts/RoleContext';
+import { setActingAs as persistActingAs } from '@/lib/acting-as';
 import type { UserRole } from '@obrafacil/shared';
 
 interface ServiceCategory {
@@ -27,6 +29,7 @@ interface Props {
 export function ProfessionalActivation({ roles }: Props) {
   const router = useRouter();
   const api = useClientApi();
+  const { setRole } = useRole();
   const isProfessional = roles.includes('professional');
 
   const [open, setOpen] = useState(false);
@@ -45,6 +48,10 @@ export function ProfessionalActivation({ roles }: Props) {
   const [success, setSuccess] = useState<string | null>(null);
   const [draftWarning, setDraftWarning] = useState<{ missing: string[] } | null>(null);
 
+  // Availability status
+  const [hasAvailability, setHasAvailability] = useState<boolean | null>(null);
+  const [showAvailabilityPrompt, setShowAvailabilityPrompt] = useState(false);
+
   useEffect(() => {
     api.get<ServiceCategory[]>('/v1/services')
       .then(setServices)
@@ -60,6 +67,11 @@ export function ProfessionalActivation({ roles }: Props) {
         setEditBio(pro.bio ?? '');
       })
       .catch(() => setCurrentProfile(null));
+
+    // Check if the professional has configured availability
+    api.get<unknown[]>('/v1/availability')
+      .then((slots) => setHasAvailability(Array.isArray(slots) && slots.length > 0))
+      .catch(() => setHasAvailability(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isProfessional]);
 
@@ -94,9 +106,18 @@ export function ProfessionalActivation({ roles }: Props) {
         bio: bio.trim() || undefined,
         city: city.trim() || undefined,
       }, true);
+
+      // Auto-switch to professional context immediately after activation
+      persistActingAs('professional');
+      setRole('professional');
+      await api.patch('/v1/account/acting-as', { role: 'professional' }).catch(() => null);
+
       if (!result.is_complete) {
         setDraftWarning({ missing: result.missing_fields });
       }
+
+      // Prompt user to configure availability
+      setShowAvailabilityPrompt(true);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao ativar perfil');
@@ -110,6 +131,8 @@ export function ProfessionalActivation({ roles }: Props) {
     setError(null);
     try {
       await api.post('/v1/account/roles/deactivate', { role: 'professional' });
+      persistActingAs('client');
+      setRole('client');
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao desativar perfil');
@@ -155,6 +178,47 @@ export function ProfessionalActivation({ roles }: Props) {
       <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1 mb-2">
         Perfil Profissional
       </h2>
+
+      {/* Availability prompt after activation */}
+      {showAvailabilityPrompt && (
+        <div className="mb-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+          <p className="text-sm font-semibold text-blue-800 mb-1">Configure sua disponibilidade</p>
+          <p className="text-xs text-blue-600 mb-2">
+            Para aparecer nas buscas dos clientes, configure os dias e horários em que você atende.
+          </p>
+          <button
+            onClick={() => { setShowAvailabilityPrompt(false); router.push('/perfil/disponibilidade'); }}
+            className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Configurar Disponibilidade →
+          </button>
+          <button
+            onClick={() => setShowAvailabilityPrompt(false)}
+            className="ml-2 text-xs text-blue-400 hover:text-blue-600"
+          >
+            Depois
+          </button>
+        </div>
+      )}
+
+      {/* No-availability warning (shown when professional has no slots) */}
+      {isProfessional && hasAvailability === false && !showAvailabilityPrompt && (
+        <div className="mb-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-2">
+          <span className="material-symbols-outlined text-amber-500 text-lg mt-0.5">warning</span>
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-amber-700">Sem disponibilidade configurada</p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              Você não aparece nas buscas enquanto não configurar sua disponibilidade.
+            </p>
+            <button
+              onClick={() => router.push('/perfil/disponibilidade')}
+              className="mt-1.5 text-xs font-semibold text-amber-700 underline"
+            >
+              Configurar agora
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
         {isProfessional ? (

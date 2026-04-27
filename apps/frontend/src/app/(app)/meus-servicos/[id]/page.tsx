@@ -15,6 +15,7 @@ const STATUS_MAP: Record<string, { label: string; variant: 'agendado' | 'ativo' 
   scheduled: { label: 'Agendada', variant: 'agendado' },
   active: { label: 'Em andamento', variant: 'ativo' },
   completed: { label: 'Concluída', variant: 'entregue' },
+  cancelled: { label: 'Cancelada', variant: 'cancelado' },
 };
 
 export default async function WorkDetailPage({
@@ -177,8 +178,8 @@ export default async function WorkDetailPage({
           </div>
         )}
 
-        {/* Actions (professional only) */}
-        {userRole === 'professional' && (
+        {/* Actions (professional only, not for cancelled works) */}
+        {userRole === 'professional' && w.status !== 'cancelled' && (
           <WorkActions
             workId={w.id}
             status={w.status}

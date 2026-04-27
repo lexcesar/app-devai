@@ -12,6 +12,7 @@ export class ProfessionalsService {
 
   async search(
     rawInput: unknown,
+    excludeProfileId?: string,
   ): Promise<{ professionals: ProfessionalWithProfile[]; total: number }> {
     const input: SearchProfessionalsInput =
       SearchProfessionalsSchema.parse(rawInput);
@@ -21,6 +22,7 @@ export class ProfessionalsService {
       city: input.city,
       limit: input.limit,
       offset: input.offset,
+      excludeProfileId,
     });
     return { professionals, total: professionals.length };
   }

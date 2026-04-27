@@ -72,7 +72,7 @@ export default async function VisitaDetailPage({
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
             <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-2">Profissional</p>
             <div className="flex items-center gap-3">
-              <Avatar src={pro.avatar_url} name={pro.full_name} size="md" />
+              <Avatar avatarId={pro.avatar_id} src={pro.avatar_url} name={pro.full_name} size="md" />
               <div>
                 <p className="text-sm font-semibold text-slate-900">{pro.full_name}</p>
                 {v.professionals?.specialty && (
@@ -88,7 +88,7 @@ export default async function VisitaDetailPage({
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
             <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-2">Cliente</p>
             <div className="flex items-center gap-3">
-              <Avatar src={client.avatar_url} name={client.full_name} size="md" />
+              <Avatar avatarId={client.avatar_id} src={client.avatar_url} name={client.full_name} size="md" />
               <div>
                 <p className="text-sm font-semibold text-slate-900">{client.full_name}</p>
                 {client.phone && <p className="text-xs text-slate-500">{client.phone}</p>}
@@ -135,7 +135,12 @@ export default async function VisitaDetailPage({
         )}
 
         {/* Actions */}
-        <VisitaActions visitId={v.id} status={v.status} userRole={userRole} />
+        <VisitaActions
+          visitId={v.id}
+          status={v.status}
+          userRole={userRole}
+          clientName={client?.full_name}
+        />
       </div>
     </div>
   );

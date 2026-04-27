@@ -30,4 +30,27 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   ): Promise<QueryResult<T>> {
     return this.pool.query<T>(text, values);
   }
+
+  /**
+   * Executes a callback inside a single database transaction.
+   * Automatically COMMITs on success or ROLLBACKs on error.
+   */
+  async transaction<T>(
+    fn: (
+      query: (text: string, values?: unknown[]) => Promise<QueryResult>,
+    ) => Promise<T>,
+  ): Promise<T> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await fn((text, values) => client.query(text, values));
+      await client.query('COMMIT');
+      return result;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
 }

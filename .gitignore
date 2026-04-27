@@ -8,6 +8,8 @@ node_modules/
 # ─── Build outputs ────────────────────────────────────────────────────────────
 dist/
 **/dist/
+# Shared package dist must be committed so Vercel nft can resolve @obrafacil/shared
+!packages/shared/dist/
 build/
 **/build/
 .next/

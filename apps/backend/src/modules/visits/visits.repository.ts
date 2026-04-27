@@ -45,14 +45,37 @@ export class AvailabilityRepository implements IAvailabilityRepository {
       `SELECT * FROM availability_slots WHERE professional_id = $1 ORDER BY weekday, start_time`,
       [professionalId],
     );
-    return rows as unknown as AvailabilitySlot[];
+    // PostgreSQL returns time columns as "HH:MM:SS"; normalize to "HH:MM"
+    return rows.map((row) => ({
+      ...row,
+      start_time: (row.start_time as string).slice(0, 5),
+      end_time: (row.end_time as string).slice(0, 5),
+    })) as unknown as AvailabilitySlot[];
   }
 
   async replaceAll(
     professionalId: string,
     slots: { weekday: number; start_time: string; end_time: string }[],
   ): Promise<AvailabilitySlot[]> {
-    if (slots.length === 0) {
+    // Normalize HH:MM:SS → HH:MM from incoming payload (frontend may retain
+    // the full format from a previous DB read), then deduplicate by (weekday, start_time).
+    const normalizeTime = (t: string) => t.slice(0, 5);
+    const seen = new Map<
+      string,
+      { weekday: number; start_time: string; end_time: string }
+    >();
+    for (const slot of slots) {
+      const st = normalizeTime(slot.start_time);
+      const et = normalizeTime(slot.end_time);
+      seen.set(`${slot.weekday}:${st}`, {
+        weekday: slot.weekday,
+        start_time: st,
+        end_time: et,
+      });
+    }
+    const uniqueSlots = Array.from(seen.values());
+
+    if (uniqueSlots.length === 0) {
       await this.db.query(
         `DELETE FROM availability_slots WHERE professional_id = $1`,
         [professionalId],
@@ -60,24 +83,40 @@ export class AvailabilityRepository implements IAvailabilityRepository {
       return [];
     }
 
-    // Use CTE to DELETE + INSERT atomically in a single statement
-    const values: unknown[] = [professionalId];
-    const placeholders = slots.map((slot, i) => {
-      const base = i * 3 + 2; // offset by 1 for professionalId param
-      values.push(slot.weekday, slot.start_time, slot.end_time);
-      return `($1, $${base}, $${base + 1}, $${base + 2})`;
+    // Use an explicit transaction: DELETE first, then INSERT as separate
+    // statements so PostgreSQL sees the deletions before evaluating the
+    // unique constraint (professional_id, weekday, start_time).
+    // A single-statement CTE (WITH deleted AS (DELETE ...) INSERT ...)
+    // does NOT work here because both sides of the CTE share the same
+    // snapshot and the INSERT still "sees" the old rows, causing a
+    // unique constraint violation (pg error 23505).
+    const rows = await this.db.transaction(async (query) => {
+      await query(`DELETE FROM availability_slots WHERE professional_id = $1`, [
+        professionalId,
+      ]);
+
+      const values: unknown[] = [professionalId];
+      const placeholders = uniqueSlots.map((slot, i) => {
+        const base = i * 3 + 2;
+        values.push(slot.weekday, slot.start_time, slot.end_time);
+        return `($1, $${base}, $${base + 1}, $${base + 2})`;
+      });
+
+      const { rows: inserted } = await query(
+        `INSERT INTO availability_slots (professional_id, weekday, start_time, end_time)
+         VALUES ${placeholders.join(', ')}
+         RETURNING *`,
+        values,
+      );
+      return inserted as Record<string, unknown>[];
     });
 
-    const { rows } = await this.db.query(
-      `WITH deleted AS (
-        DELETE FROM availability_slots WHERE professional_id = $1
-      )
-      INSERT INTO availability_slots (professional_id, weekday, start_time, end_time)
-      VALUES ${placeholders.join(', ')}
-      RETURNING *`,
-      values,
-    );
-    return rows as unknown as AvailabilitySlot[];
+    // Normalize HH:MM:SS → HH:MM
+    return rows.map((row) => ({
+      ...row,
+      start_time: (row.start_time as string).slice(0, 5),
+      end_time: (row.end_time as string).slice(0, 5),
+    })) as unknown as AvailabilitySlot[];
   }
 }
 
@@ -124,20 +163,58 @@ export class VisitsRepository implements IVisitsRepository {
     clientId,
     professionalId,
     scheduledAt,
+    street,
+    streetNumber,
+    complement,
+    neighborhood,
+    cityName,
+    stateCode,
+    requesterName,
+    serviceType,
+    description,
     address,
     notes,
   }: {
     clientId: string;
     professionalId: string;
     scheduledAt: string;
+    street?: string;
+    streetNumber?: string;
+    complement?: string;
+    neighborhood?: string;
+    cityName?: string;
+    stateCode?: string;
+    requesterName?: string;
+    serviceType?: string;
+    description?: string;
     address?: string;
     notes?: string;
   }): Promise<Visit> {
     const { rows } = await this.db.query(
-      `INSERT INTO visits (client_id, professional_id, scheduled_at, address, notes)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO visits (
+         client_id, professional_id, scheduled_at, status,
+         street, street_number, complement, neighborhood, city_name, state_code,
+         requester_name, service_type, description,
+         address, notes
+       )
+       VALUES ($1, $2, $3, 'pending', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        RETURNING *`,
-      [clientId, professionalId, scheduledAt, address ?? null, notes ?? null],
+      [
+        clientId,
+        professionalId,
+        scheduledAt,
+        street ?? null,
+        streetNumber ?? null,
+        complement ?? null,
+        neighborhood ?? null,
+        cityName ?? null,
+        stateCode ?? null,
+        requesterName ?? null,
+        serviceType ?? null,
+        description ?? null,
+        address ?? null,
+        notes ?? null,
+      ],
     );
     return rows[0] as unknown as Visit;
   }

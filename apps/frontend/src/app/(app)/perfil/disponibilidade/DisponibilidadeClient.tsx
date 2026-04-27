@@ -3,9 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/ui/StickyBottomCTA';
-import { isAuthBypassEnabled, BYPASS_USER_CLERK_ID } from '@/lib/auth-bypass-config';
-import { DEV_USER_ID_HEADER, ACTING_AS_HEADER } from '@obrafacil/shared';
-import { getActingAs } from '@/lib/acting-as';
+import { useClientApi } from '@/lib/api/client-api';
 
 const WEEKDAYS = [
   { value: 0, label: 'Domingo' },
@@ -25,6 +23,7 @@ interface Slot {
 
 export function DisponibilidadeClient({ initialSlots }: { initialSlots: Slot[] }) {
   const router = useRouter();
+  const api = useClientApi();
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -47,28 +46,12 @@ export function DisponibilidadeClient({ initialSlots }: { initialSlots: Slot[] }
     setSaving(true);
     setMessage(null);
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (isAuthBypassEnabled) headers[DEV_USER_ID_HEADER] = BYPASS_USER_CLERK_ID;
-      const actingAs = getActingAs();
-      if (actingAs) headers[ACTING_AS_HEADER] = actingAs;
-      try {
-        const res = await fetch(`${apiUrl}/v1/availability`, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify({ slots }),
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as { error?: string };
-        setMessage({ type: 'error', text: body.error ?? 'Erro ao salvar' });
-        return;
-      }
-
+    try {
+      await api.put('/v1/availability', { slots });
       setMessage({ type: 'success', text: 'Disponibilidade salva com sucesso!' });
       router.refresh();
-    } catch {
-      setMessage({ type: 'error', text: 'Erro de conexão' });
+    } catch (err) {
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Erro ao salvar' });
     } finally {
       setSaving(false);
     }

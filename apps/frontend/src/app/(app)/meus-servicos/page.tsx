@@ -11,6 +11,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }
   scheduled: { label: 'Agendada', color: 'text-blue-600', bg: 'bg-blue-50' },
   active:    { label: 'Em andamento', color: 'text-trust', bg: 'bg-orange-50' },
   completed: { label: 'Concluída', color: 'text-green-600', bg: 'bg-green-50' },
+  cancelled: { label: 'Cancelada', color: 'text-red-500', bg: 'bg-red-50' },
 };
 
 export default async function MeusServicosPage() {
@@ -25,6 +26,7 @@ export default async function MeusServicosPage() {
   const active = works.filter((w) => w.status === 'active');
   const scheduled = works.filter((w) => w.status === 'scheduled');
   const completed = works.filter((w) => w.status === 'completed');
+  const cancelled = works.filter((w) => w.status === 'cancelled');
 
   return (
     <div className="pb-24 bg-surface min-h-screen">
@@ -79,6 +81,20 @@ export default async function MeusServicosPage() {
                 </h2>
                 <div className="space-y-3 opacity-70">
                   {completed.slice(0, 5).map((work) => (
+                    <WorkCard key={work.id} work={work} actingAs={actingAs} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Canceladas */}
+            {cancelled.length > 0 && (
+              <section>
+                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                  Canceladas
+                </h2>
+                <div className="space-y-3 opacity-60">
+                  {cancelled.map((work) => (
                     <WorkCard key={work.id} work={work} actingAs={actingAs} />
                   ))}
                 </div>

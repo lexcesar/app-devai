@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { StoreOfferWithStore } from '@obrafacil/shared';
 import { StickyBottomCTA, PrimaryButton } from '@/components/ui/StickyBottomCTA';
+import { useClientApi } from '@/lib/api/client-api';
 
 interface CotacaoClientProps {
   listId: string;
@@ -23,6 +24,7 @@ export function CotacaoClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const api = useClientApi();
 
   const selectedOffer = offers.find((o) => o.id === selectedId);
   const cheapestPrice = Number(offers[0]?.total_price ?? 0);
@@ -33,25 +35,15 @@ export function CotacaoClient({
     setError(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
-      const res = await fetch(`${apiUrl}/v1/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          storeId: selectedOffer.stores?.id,
-          materialListId: listId,
-          totalAmount: selectedOffer.total_price,
-          deliveryAddress: '',
-        }),
+      await api.post('/v1/orders', {
+        storeId: selectedOffer.stores?.id,
+        materialListId: listId,
+        totalAmount: selectedOffer.total_price,
+        deliveryAddress: '',
       });
-
-      if (res.ok) {
-        router.push('/solicitacoes');
-      } else {
-        setError('Nao foi possivel confirmar o pedido. Tente novamente.');
-      }
+      router.push('/solicitacoes');
     } catch {
-      setError('Erro de conexao. Verifique sua internet e tente novamente.');
+      setError('Nao foi possivel confirmar o pedido. Tente novamente.');
     } finally {
       setLoading(false);
     }
