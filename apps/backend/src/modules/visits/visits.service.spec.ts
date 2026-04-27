@@ -272,6 +272,7 @@ describe('VisitsService', () => {
         'v1',
         'cancelled',
         'client-1',
+        undefined,
       );
     });
 

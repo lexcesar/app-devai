@@ -76,6 +76,7 @@ describe('AccountController', () => {
           rows: [{ bio: validBody.bio, full_name: mockProfile.full_name }],
         }) // SELECT bio + full_name
         .mockResolvedValueOnce({ rows: [] }) // UPDATE visibility_status
+        .mockResolvedValueOnce({ rows: [] }) // UPDATE profiles SET role = 'professional'
         .mockResolvedValueOnce({
           rows: [{ role: 'client' }, { role: 'professional' }],
         }); // SELECT roles
@@ -100,6 +101,7 @@ describe('AccountController', () => {
           rows: [{ bio: validBody.bio, full_name: mockProfile.full_name }],
         })
         .mockResolvedValueOnce({ rows: [] }) // UPDATE visibility_status
+        .mockResolvedValueOnce({ rows: [] }) // UPDATE profiles SET role = 'professional'
         .mockResolvedValueOnce({
           rows: [{ role: 'client' }, { role: 'professional' }],
         });
@@ -272,6 +274,7 @@ describe('AccountController', () => {
           rows: [{ bio, full_name: mockProfile.full_name }],
         })
         .mockResolvedValueOnce({ rows: [] }) // update visibility_status
+        .mockResolvedValueOnce({ rows: [] }) // UPDATE profiles SET role = 'professional'
         .mockResolvedValueOnce({
           rows: [{ role: 'client' }, { role: 'professional' }],
         });

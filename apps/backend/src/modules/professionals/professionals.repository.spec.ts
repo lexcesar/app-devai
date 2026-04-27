@@ -177,7 +177,7 @@ describe('ProfessionalsRepository', () => {
       ['Reparos elétricos', 'eletric'],
       ['hidráulica', 'encanad'],
       ['encanador', 'encanad'],
-      ['pintura', 'pintor'],
+      ['pintura', 'pint'],
       ['pedreiro', 'pedreir'],
       ['Marceneiro', 'marceneir'],
       ['diarista', 'diarista'],
@@ -187,9 +187,9 @@ describe('ProfessionalsRepository', () => {
     });
 
     it('preserva o termo original quando não há mapeamento conhecido', async () => {
-      const result = await captureServiceParam('pintor decorador especialista');
+      const result = await captureServiceParam('serralheiro');
       // Nenhuma das chaves de mapeamento corresponde → usa o valor original
-      expect(result).toBe('pintor decorador especialista');
+      expect(result).toBe('serralheiro');
     });
   });
 
