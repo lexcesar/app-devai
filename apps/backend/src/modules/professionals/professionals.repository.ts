@@ -87,6 +87,9 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
 
     const queryTerm = normalizeAndMapTerm(query);
     const serviceTerm = normalizeAndMapTerm(service);
+    // Raw (non-normalized) service name for direct match against specialties
+    // stored as the literal service category (e.g. "Instalações Hidráulicas").
+    const serviceRaw = service ?? null;
 
     const { rows } = await this.db.query(
       `SELECT ${COLS}
@@ -102,7 +105,8 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
            WHERE av.professional_id = p.id
          )
          AND ($1::text IS NULL OR pr.full_name ILIKE '%' || $1 || '%' OR p.bio ILIKE '%' || $1 || '%' OR p.specialty ILIKE '%' || $1 || '%')
-         AND ($2::text IS NULL OR p.specialty ILIKE '%' || $2 || '%' OR p.bio ILIKE '%' || $2 || '%')
+         AND ($2::text IS NULL OR p.specialty ILIKE '%' || $2 || '%' OR p.bio ILIKE '%' || $2 || '%'
+              OR ($6::text IS NOT NULL AND p.specialty ILIKE '%' || $6 || '%'))
          AND ($5::uuid IS NULL OR p.profile_id != $5)
        ORDER BY p.rating_avg DESC, p.published_at DESC
        LIMIT $3 OFFSET $4`,
@@ -112,6 +116,7 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
         limit ?? 10,
         offset ?? 0,
         excludeProfileId ?? null,
+        serviceRaw,
       ],
     );
     return rows.map(mapRow);
