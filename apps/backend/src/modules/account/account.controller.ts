@@ -220,6 +220,19 @@ export class AccountController {
       [profileId],
     );
 
+    // If profiles.role matches the deactivated role, reset it to the primary
+    // active role (or 'client' as safe default) so the bypass guard and
+    // actingAs fallback are consistent after deactivation.
+    const fallbackRole: UserRole =
+      (updated.find((r) => r.role === 'client')?.role) ??
+      (updated[0]?.role) ??
+      'client';
+    await this.db.query(
+      `UPDATE profiles SET role = $1, updated_at = now()
+         WHERE id = $2 AND role = $3`,
+      [fallbackRole, profileId, input.role],
+    );
+
     return { roles: updated.map((r) => r.role) };
   }
 
